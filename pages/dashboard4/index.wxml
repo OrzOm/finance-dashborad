@@ -1,0 +1,492 @@
+<view class="dashboard-container">
+  <view class="dashboard-header">
+    <view class="header-left">
+      <text class="dashboard-title">行业板块资金流向</text>
+      <text class="update-time">更新: {{lastUpdateTime}}</text>
+    </view>
+    <view class="header-actions">
+      <view class="icon-btn {{showSettings ? 'active' : ''}}" bindtap="toggleSettings">
+        <text>⚙</text>
+      </view>
+      <view class="icon-btn {{isRefreshing ? 'loading' : ''}}" bindtap="manualRefresh">
+        <text>↻</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="settings-panel {{showSettings ? 'show' : ''}}">
+    <view class="settings-section">
+      <view class="section-title">更新频率</view>
+      <view class="frequency-options">
+        <view class="frequency-btn {{refreshInterval === 15000 ? 'active' : ''}}" data-interval="15000" bindtap="setRefreshInterval">15秒</view>
+        <view class="frequency-btn {{refreshInterval === 30000 ? 'active' : ''}}" data-interval="30000" bindtap="setRefreshInterval">30秒</view>
+        <view class="frequency-btn {{refreshInterval === 60000 ? 'active' : ''}}" data-interval="60000" bindtap="setRefreshInterval">1分钟</view>
+        <view class="frequency-btn {{refreshInterval === 300000 ? 'active' : ''}}" data-interval="300000" bindtap="setRefreshInterval">5分钟</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="summary-card">
+    <view class="summary-header">
+      <text class="summary-title">资金流向汇总</text>
+    </view>
+    <view class="summary-content">
+      <view class="summary-item">
+        <text class="summary-label">净流入</text>
+        <text class="summary-value {{summary.netFlow >= 0 ? 'up' : 'down'}}">
+          {{summary.netFlow >= 0 ? '+' : ''}}{{summary.netFlow}}亿
+        </text>
+      </view>
+      <view class="summary-divider"></view>
+      <view class="summary-item">
+        <text class="summary-label">流入</text>
+        <text class="summary-value up">+{{summary.totalInflow}}亿</text>
+      </view>
+      <view class="summary-divider"></view>
+      <view class="summary-item">
+        <text class="summary-label">流出</text>
+        <text class="summary-value down">-{{summary.totalOutflow}}亿</text>
+      </view>
+    </view>
+    <view class="summary-footer">
+      <view class="top-item">
+        <text class="top-label">净流入最多:</text>
+        <text class="top-value up">{{summary.topInflow.name}} +{{summary.topInflow.value}}亿</text>
+      </view>
+      <view class="top-item">
+        <text class="top-label">净流出最多:</text>
+        <text class="top-value down">{{summary.topOutflow.name}} {{summary.topOutflow.value}}亿</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="tabs">
+    <view class="tab-item {{activeTab === 'industry' ? 'active' : ''}}" data-tab="industry" bindtap="switchTab">
+      <text>行业资金</text>
+    </view>
+    <view class="tab-item {{activeTab === 'theme' ? 'active' : ''}}" data-tab="theme" bindtap="switchTab">
+      <text>热门板块</text>
+    </view>
+    <view class="tab-item {{activeTab === 'etf' ? 'active' : ''}}" data-tab="etf" bindtap="switchTab">
+      <text>ETF资金</text>
+    </view>
+    <view class="tab-item {{activeTab === 'fund' ? 'active' : ''}}" data-tab="fund" bindtap="switchTab">
+      <text>基金监控</text>
+    </view>
+  </view>
+
+  <view class="content-area">
+    <view class="industry-panel" wx:if="{{activeTab === 'industry'}}">
+      <view class="sort-bar">
+        <text class="sort-label">排序:</text>
+        <view class="sort-btn {{sortField === 'netFlow' ? 'active' : ''}}" data-field="netFlow" bindtap="setSortField">
+          <text>净流入</text>
+          <text class="sort-arrow" wx:if="{{sortField === 'netFlow'}}">{{sortOrder === 'desc' ? '↓' : '↑'}}</text>
+        </view>
+        <view class="sort-btn {{sortField === 'changePercent' ? 'active' : ''}}" data-field="changePercent" bindtap="setSortField">
+          <text>涨跌幅</text>
+          <text class="sort-arrow" wx:if="{{sortField === 'changePercent'}}">{{sortOrder === 'desc' ? '↓' : '↑'}}</text>
+        </view>
+        <view class="sort-btn {{sortField === 'riseRatio' ? 'active' : ''}}" data-field="riseRatio" bindtap="setSortField">
+          <text>上涨占比</text>
+          <text class="sort-arrow" wx:if="{{sortField === 'riseRatio'}}">{{sortOrder === 'desc' ? '↓' : '↑'}}</text>
+        </view>
+      </view>
+
+      <view class="industry-list">
+        <view class="industry-item" wx:for="{{filteredIndustryData}}" wx:key="code">
+          <view class="industry-header">
+            <view class="industry-name-box">
+              <text class="industry-icon">{{item.icon}}</text>
+              <text class="industry-name">{{item.name}}</text>
+            </view>
+            <view class="industry-change {{item.changePercent >= 0 ? 'up' : 'down'}}">
+              <text>{{item.changePercent >= 0 ? '+' : ''}}{{item.changePercent}}%</text>
+            </view>
+          </view>
+          <view class="industry-body">
+            <view class="flow-bar-container">
+              <view class="flow-bar-bg">
+                <view class="flow-bar-fill {{item.netFlow >= 0 ? 'inflow' : 'outflow'}}"
+                  style="width: {{item.netFlow >= 0 ? (item.netFlow / 200 * 100) : (0 - item.netFlow) / 200 * 100}}%">
+                </view>
+              </view>
+              <text class="flow-value {{item.netFlow >= 0 ? 'up' : 'down'}}">
+                {{item.netFlow >= 0 ? '+' : ''}}{{item.netFlow}}亿
+              </text>
+            </view>
+            <view class="industry-stats">
+              <view class="stat-item">
+                <text class="stat-label">上涨</text>
+                <text class="stat-value up">{{item.riseCount}}</text>
+              </view>
+              <view class="stat-item">
+                <text class="stat-label">下跌</text>
+                <text class="stat-value down">{{item.fallCount}}</text>
+              </view>
+              <view class="stat-item">
+                <text class="stat-label">上涨比</text>
+                <text class="stat-value">{{item.riseRatio}}%</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="theme-panel" wx:if="{{activeTab === 'theme'}}">
+      <view class="theme-list">
+        <view class="theme-item" wx:for="{{themeData}}" wx:key="name">
+          <view class="theme-header">
+            <view class="theme-name-box">
+              <text class="theme-name">{{item.name}}</text>
+              <view class="theme-hot" wx:if="{{item.hot}}">
+                <text>🔥</text>
+              </view>
+            </view>
+            <view class="theme-change {{item.changePercent >= 0 ? 'up' : 'down'}}">
+              <text>{{item.changePercent >= 0 ? '+' : ''}}{{item.changePercent}}%</text>
+            </view>
+          </view>
+          <view class="theme-body">
+            <view class="theme-flow">
+              <text class="flow-label">净流入:</text>
+              <text class="flow-value {{item.netFlow >= 0 ? 'up' : 'down'}}">
+                {{item.netFlow >= 0 ? '+' : ''}}{{item.netFlow}}亿
+              </text>
+            </view>
+            <view class="theme-stats">
+              <view class="stat-item">
+                <text class="stat-label">上涨</text>
+                <text class="stat-value up">{{item.riseCount}}</text>
+              </view>
+              <view class="stat-item">
+                <text class="stat-label">下跌</text>
+                <text class="stat-value down">{{item.fallCount}}</text>
+              </view>
+            </view>
+            <view class="theme-related">
+              <text class="related-label">关联行业:</text>
+              <view class="related-tags">
+                <text class="related-tag" wx:for="{{item.related}}" wx:for-item="rel" wx:key="*this">{{rel}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="etf-panel" wx:if="{{activeTab === 'etf'}}">
+      <view class="etf-list">
+        <view class="etf-header">
+          <view class="etf-th" style="width: 200rpx;">名称</view>
+          <view class="etf-th" style="width: 120rpx;">涨跌幅</view>
+          <view class="etf-th" style="width: 140rpx;">净流入(亿)</view>
+          <view class="etf-th" style="width: 120rpx;">成交额(亿)</view>
+          <view class="etf-th" style="width: 100rpx;">溢折价</view>
+        </view>
+        <view class="etf-row" wx:for="{{etfData}}" wx:key="code">
+          <view class="etf-td" style="width: 200rpx;">
+            <text class="etf-name">{{item.shortName}}</text>
+          </view>
+          <view class="etf-td {{item.changePercent >= 0 ? 'up' : 'down'}}" style="width: 120rpx;">
+            {{item.changePercent >= 0 ? '+' : ''}}{{item.changePercent}}%
+          </view>
+          <view class="etf-td {{item.netFlow >= 0 ? 'up' : 'down'}}" style="width: 140rpx;">
+            {{item.netFlow >= 0 ? '+' : ''}}{{item.netFlow}}
+          </view>
+          <view class="etf-td" style="width: 120rpx;">
+            {{item.amount}}
+          </view>
+          <view class="etf-td {{item.premium >= 0 ? 'up' : 'down'}}" style="width: 100rpx;">
+            {{item.premium >= 0 ? '+' : ''}}{{item.premium}}%
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="fund-panel" wx:if="{{activeTab === 'fund'}}">
+      <view class="fund-tabs">
+        <view class="fund-tab-item {{fundTab === 'ranking' ? 'active' : ''}}" data-tab="ranking" bindtap="switchFundTab">
+          <text>基金排行</text>
+        </view>
+        <view class="fund-tab-item {{fundTab === 'portfolio' ? 'active' : ''}}" data-tab="portfolio" bindtap="switchFundTab">
+          <text>我的持仓</text>
+        </view>
+      </view>
+
+      <view class="fund-content">
+        <view class="ranking-panel" wx:if="{{fundTab === 'ranking'}}">
+          <view class="period-selector">
+            <scroll-view scroll-x class="period-scroll">
+              <view class="period-bar">
+                <view class="period-item {{sortPeriod === 'today' ? 'active' : ''}}" data-period="today" bindtap="setSortPeriod">
+                  <text>今日</text>
+                </view>
+                <view class="period-item {{sortPeriod === '3d' ? 'active' : ''}}" data-period="3d" bindtap="setSortPeriod">
+                  <text>3日</text>
+                </view>
+                <view class="period-item {{sortPeriod === '1w' ? 'active' : ''}}" data-period="1w" bindtap="setSortPeriod">
+                  <text>1周</text>
+                </view>
+                <view class="period-item {{sortPeriod === '1m' ? 'active' : ''}}" data-period="1m" bindtap="setSortPeriod">
+                  <text>1月</text>
+                </view>
+                <view class="period-item {{sortPeriod === '1y' ? 'active' : ''}}" data-period="1y" bindtap="setSortPeriod">
+                  <text>1年</text>
+                </view>
+                <view class="period-item {{sortPeriod === '3y' ? 'active' : ''}}" data-period="3y" bindtap="setSortPeriod">
+                  <text>3年</text>
+                </view>
+              </view>
+            </scroll-view>
+          </view>
+
+          <view class="type-filter">
+            <scroll-view scroll-x class="type-scroll">
+              <view class="type-bar">
+                <view class="type-item {{fundTypeFilter === 'all' ? 'active' : ''}}" data-type="all" bindtap="setFundTypeFilter">
+                  <text>全部</text>
+                </view>
+                <view class="type-item {{fundTypeFilter === 'stock' ? 'active' : ''}}" data-type="stock" bindtap="setFundTypeFilter">
+                  <text>股票型</text>
+                </view>
+                <view class="type-item {{fundTypeFilter === 'mixed' ? 'active' : ''}}" data-type="mixed" bindtap="setFundTypeFilter">
+                  <text>混合型</text>
+                </view>
+                <view class="type-item {{fundTypeFilter === 'bond' ? 'active' : ''}}" data-type="bond" bindtap="setFundTypeFilter">
+                  <text>债券型</text>
+                </view>
+                <view class="type-item {{fundTypeFilter === 'index' ? 'active' : ''}}" data-type="index" bindtap="setFundTypeFilter">
+                  <text>指数型</text>
+                </view>
+                <view class="type-item {{fundTypeFilter === 'qdii' ? 'active' : ''}}" data-type="qdii" bindtap="setFundTypeFilter">
+                  <text>QDII</text>
+                </view>
+              </view>
+            </scroll-view>
+          </view>
+
+          <view class="ranking-header">
+            <view class="rank-th" style="width: 80rpx;">排名</view>
+            <view class="rank-th" style="width: 260rpx;">基金名称</view>
+            <view class="rank-th" style="width: 120rpx;">今日</view>
+            <view class="rank-th" style="width: 120rpx;">3日</view>
+            <view class="rank-th" style="width: 120rpx;">1周</view>
+            <view class="rank-th" style="width: 120rpx;">1月</view>
+          </view>
+
+          <view class="ranking-list">
+            <view class="ranking-item" wx:for="{{filteredRanking}}" wx:key="code">
+              <view class="rank-td rank-num" style="width: 80rpx;">
+                <text class="{{item.rank <= 3 ? 'top-rank' : ''}}">{{item.rank}}</text>
+              </view>
+              <view class="rank-td" style="width: 260rpx;">
+                <view class="fund-info">
+                  <text class="fund-name">{{item.name}}</text>
+                  <view class="fund-tags">
+                    <text class="fund-type-tag">{{item.typeName}}</text>
+                    <text class="fund-scale">{{item.scale}}亿</text>
+                  </view>
+                </view>
+              </view>
+              <view class="rank-td {{item.todayChange >= 0 ? 'up' : 'down'}}" style="width: 120rpx;">
+                {{item.todayChange >= 0 ? '+' : ''}}{{item.todayChange}}%
+              </view>
+              <view class="rank-td {{item.change3d >= 0 ? 'up' : 'down'}}" style="width: 120rpx;">
+                {{item.change3d >= 0 ? '+' : ''}}{{item.change3d}}%
+              </view>
+              <view class="rank-td {{item.change1w >= 0 ? 'up' : 'down'}}" style="width: 120rpx;">
+                {{item.change1w >= 0 ? '+' : ''}}{{item.change1w}}%
+              </view>
+              <view class="rank-td {{item.change1m >= 0 ? 'up' : 'down'}}" style="width: 120rpx;">
+                {{item.change1m >= 0 ? '+' : ''}}{{item.change1m}}%
+              </view>
+            </view>
+          </view>
+
+          <view class="empty-state" wx:if="{{filteredRanking.length === 0 && !isLoading}}">
+            <view class="empty-icon">📊</view>
+            <text class="empty-title">暂无数据</text>
+            <text class="empty-desc">当前筛选条件下没有基金数据</text>
+          </view>
+        </view>
+
+        <view class="portfolio-panel" wx:if="{{fundTab === 'portfolio'}}">
+          <view class="portfolio-summary">
+            <view class="summary-card">
+              <view class="summary-header">
+                <text class="summary-title">我的持仓</text>
+              </view>
+              <view class="summary-content">
+                <view class="summary-item">
+                  <text class="summary-label">总资产</text>
+                  <text class="summary-value">{{portfolio.totalAssets || '0.00'}}元</text>
+                </view>
+                <view class="summary-divider"></view>
+                <view class="summary-item">
+                  <text class="summary-label">总收益</text>
+                  <text class="summary-value {{portfolio.totalProfit >= 0 ? 'up' : 'down'}}">
+                    {{portfolio.totalProfit >= 0 ? '+' : ''}}{{portfolio.totalProfit || '0.00'}}元
+                  </text>
+                </view>
+                <view class="summary-divider"></view>
+                <view class="summary-item">
+                  <text class="summary-label">收益率</text>
+                  <text class="summary-value {{portfolio.totalProfitRate >= 0 ? 'up' : 'down'}}">
+                    {{portfolio.totalProfitRate >= 0 ? '+' : ''}}{{portfolio.totalProfitRate || '0.00'}}%
+                  </text>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <view class="portfolio-actions">
+            <view class="action-btn primary" bindtap="chooseOCRImage">
+              <text>📷 上传持仓截图</text>
+            </view>
+            <view class="action-btn secondary" bindtap="showAddFundDialog">
+              <text>➕ 手动添加</text>
+            </view>
+          </view>
+
+          <view class="portfolio-list" wx:if="{{portfolio.funds.length > 0}}">
+            <view class="portfolio-item" wx:for="{{portfolio.funds}}" wx:key="code">
+              <view class="portfolio-header">
+                <view class="fund-info">
+                  <text class="fund-name">{{item.name}}</text>
+                  <text class="fund-code">{{item.code}}</text>
+                </view>
+                <view class="delete-btn" data-index="{{index}}" bindtap="deleteFund">
+                  <text>🗑️</text>
+                </view>
+              </view>
+              <view class="portfolio-body">
+                <view class="portfolio-metrics">
+                  <view class="metric-item">
+                    <text class="metric-label">持有份额</text>
+                    <text class="metric-value">{{item.shares}}</text>
+                  </view>
+                  <view class="metric-item">
+                    <text class="metric-label">成本净值</text>
+                    <text class="metric-value">{{item.costNav}}</text>
+                  </view>
+                  <view class="metric-item">
+                    <text class="metric-label">当前市值</text>
+                    <text class="metric-value">{{item.marketValue}}元</text>
+                  </view>
+                  <view class="metric-item">
+                    <text class="metric-label">收益</text>
+                    <text class="metric-value {{item.profit >= 0 ? 'up' : 'down'}}">
+                      {{item.profit >= 0 ? '+' : ''}}{{item.profit}}元
+                    </text>
+                  </view>
+                  <view class="metric-item">
+                    <text class="metric-label">收益率</text>
+                    <text class="metric-value {{item.profitRate >= 0 ? 'up' : 'down'}}">
+                      {{item.profitRate >= 0 ? '+' : ''}}{{item.profitRate}}%
+                    </text>
+                  </view>
+                  <view class="metric-item">
+                    <text class="metric-label">更新日期</text>
+                    <text class="metric-value">{{item.updateDate}}</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <view class="empty-state" wx:if="{{portfolio.funds.length === 0}}">
+            <view class="empty-icon">💼</view>
+            <text class="empty-title">暂无持仓</text>
+            <text class="empty-desc">上传持仓截图或手动添加基金</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="modal-mask" wx:if="{{showOCR}}" bindtap="cancelOCR">
+    <view class="modal-content" catchtap="">
+      <view class="modal-header">
+        <text class="modal-title">OCR识别结果</text>
+        <view class="modal-close" bindtap="cancelOCR">
+          <text>✕</text>
+        </view>
+      </view>
+      <view class="modal-body">
+        <view class="ocr-progress" wx:if="{{ocrProgress < 100}}">
+          <view class="progress-bar">
+            <view class="progress-fill" style="width: {{ocrProgress}}%"></view>
+          </view>
+          <text class="progress-text">识别中... {{ocrProgress}}%</text>
+        </view>
+
+        <view class="ocr-result" wx:if="{{ocrProgress === 100 && ocrResult}}">
+          <view class="ocr-summary">
+            <text>识别到 {{ocrResult.funds.length}} 只基金</text>
+            <text>总资产: {{ocrResult.totalAssets}}元</text>
+          </view>
+          <view class="ocr-funds">
+            <view class="ocr-fund-item" wx:for="{{ocrResult.funds}}" wx:key="code">
+              <text class="ocr-fund-name">{{item.name}}</text>
+              <text class="ocr-fund-detail">份额: {{item.shares}} | 市值: {{item.marketValue}}元</text>
+            </view>
+          </view>
+          <view class="ocr-actions">
+            <view class="ocr-btn cancel" bindtap="cancelOCR">
+              <text>取消</text>
+            </view>
+            <view class="ocr-btn confirm" bindtap="confirmOCRResult">
+              <text>确认导入</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="modal-mask" wx:if="{{showAddFund}}" bindtap="hideAddFundDialog">
+    <view class="modal-content" catchtap="">
+      <view class="modal-header">
+        <text class="modal-title">添加基金</text>
+        <view class="modal-close" bindtap="hideAddFundDialog">
+          <text>✕</text>
+        </view>
+      </view>
+      <view class="modal-body">
+        <view class="form-group">
+          <text class="form-label">基金代码</text>
+          <input class="form-input" placeholder="请输入基金代码" value="{{newFund.code}}" data-field="code" bindinput="onNewFundInput" />
+        </view>
+        <view class="form-group">
+          <text class="form-label">基金名称</text>
+          <input class="form-input" placeholder="请输入基金名称" value="{{newFund.name}}" data-field="name" bindinput="onNewFundInput" />
+        </view>
+        <view class="form-group">
+          <text class="form-label">持有份额</text>
+          <input class="form-input" type="digit" placeholder="请输入持有份额" value="{{newFund.shares}}" data-field="shares" bindinput="onNewFundInput" />
+        </view>
+        <view class="form-group">
+          <text class="form-label">成本净值</text>
+          <input class="form-input" type="digit" placeholder="请输入成本净值" value="{{newFund.costNav}}" data-field="costNav" bindinput="onNewFundInput" />
+        </view>
+        <view class="form-actions">
+          <view class="form-btn cancel" bindtap="hideAddFundDialog">
+            <text>取消</text>
+          </view>
+          <view class="form-btn confirm" bindtap="confirmAddFund">
+            <text>确认添加</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty-state error" wx:if="{{error}}">
+    <view class="empty-icon">⚠️</view>
+    <text class="empty-title">加载失败</text>
+    <text class="empty-desc">{{error}}</text>
+    <view class="retry-btn" bindtap="manualRefresh">重试</view>
+  </view>
+</view>

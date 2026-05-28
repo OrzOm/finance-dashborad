@@ -1,0 +1,144 @@
+<view class="dashboard-container">
+  <view class="dashboard-header">
+    <view class="header-left">
+      <text class="dashboard-title">股指期货看板</text>
+      <text class="update-time">更新: {{lastUpdateTime}}</text>
+    </view>
+    <view class="header-actions">
+      <view class="icon-btn {{showSettings ? 'active' : ''}}" bindtap="toggleSettings">
+        <text>⚙</text>
+      </view>
+      <view class="icon-btn {{isRefreshing ? 'loading' : ''}}" bindtap="manualRefresh">
+        <text>↻</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="index-bar" wx:if="{{indexPrices.IF || indexPrices.IH || indexPrices.IC || indexPrices.IM}}">
+    <view class="index-item" wx:for="{{futuresTypes}}" wx:key="type" wx:if="{{indexPrices[item.type]}}"
+      style="{{indexPrices[item.type].bgStyle}}{{selectedIndex === item.type ? ';' + indexPrices[item.type].selectedBorderStyle : ''}}"
+      data-type="{{item.type}}" bindtap="onIndexTap">
+      <text class="index-name" style="{{indexPrices[item.type].priceStyle}}">{{item.name}}</text>
+      <text class="index-price" style="{{indexPrices[item.type].priceStyle}}">{{indexPrices[item.type].price}}</text>
+      <text class="index-change" style="{{indexPrices[item.type].priceStyle}}">{{indexPrices[item.type].changePercentStr}}</text>
+    </view>
+  </view>
+
+  <view class="trend-chart-container {{selectedIndex ? 'show' : ''}}" wx:if="{{selectedIndex}}">
+    <view class="trend-chart-header">
+      <text class="trend-chart-title">{{indexPrices[selectedIndex].name}} 今日走势</text>
+      <view class="trend-chart-close" data-type="{{selectedIndex}}" bindtap="onIndexTap">
+        <text>✕</text>
+      </view>
+    </view>
+    <view class="trend-chart-body" wx:if="{{!chartLoading && !chartError && trendData.length > 0}}">
+      <canvas type="2d" id="trendChart" class="trend-canvas"></canvas>
+    </view>
+    <view class="trend-chart-loading" wx:if="{{chartLoading}}">
+      <text>加载走势数据中...</text>
+    </view>
+    <view class="trend-chart-error" wx:if="{{chartError}}">
+      <text>{{chartError}}</text>
+    </view>
+  </view>
+
+  <view class="settings-panel {{showSettings ? 'show' : ''}}">
+    <view class="settings-section">
+      <view class="section-title">更新频率</view>
+      <view class="frequency-options">
+        <view class="frequency-btn {{refreshInterval === 5000 ? 'active' : ''}}" data-interval="5000" bindtap="setRefreshInterval">5秒</view>
+        <view class="frequency-btn {{refreshInterval === 10000 ? 'active' : ''}}" data-interval="10000" bindtap="setRefreshInterval">10秒</view>
+        <view class="frequency-btn {{refreshInterval === 30000 ? 'active' : ''}}" data-interval="30000" bindtap="setRefreshInterval">30秒</view>
+        <view class="frequency-btn {{refreshInterval === 60000 ? 'active' : ''}}" data-interval="60000" bindtap="setRefreshInterval">1分钟</view>
+      </view>
+    </view>
+    <view class="settings-section">
+      <view class="section-title">年化基差阈值（%）</view>
+      <view class="threshold-grid">
+        <view class="threshold-item" wx:for="{{futuresTypes}}" wx:key="type">
+          <text class="threshold-label">{{item.name}}</text>
+          <input type="digit" class="threshold-input" value="{{item.threshold}}" data-type="{{item.type}}" bindinput="setThreshold" placeholder="如: 5.5" />
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="filter-bar">
+    <view class="filter-btn {{activeFilter === 'all' ? 'active' : ''}}" data-filter="all" bindtap="setFilter">全部</view>
+    <view class="filter-btn {{activeFilter === 'IF' ? 'active' : ''}}" data-filter="IF" bindtap="setFilter">IF 沪深300</view>
+    <view class="filter-btn {{activeFilter === 'IH' ? 'active' : ''}}" data-filter="IH" bindtap="setFilter">IH 上证50</view>
+    <view class="filter-btn {{activeFilter === 'IC' ? 'active' : ''}}" data-filter="IC" bindtap="setFilter">IC 中证500</view>
+    <view class="filter-btn {{activeFilter === 'IM' ? 'active' : ''}}" data-filter="IM" bindtap="setFilter">IM 中证1000</view>
+  </view>
+
+  <view class="data-section">
+    <view class="table-wrapper" wx:if="{{filteredData.length > 0}}">
+      <view class="table-header">
+        <view class="th" style="width:200rpx;">品种/合约</view>
+        <view class="th" style="width:140rpx;">实时点位</view>
+        <view class="th" style="width:120rpx;">涨跌幅</view>
+        <view class="th" style="width:110rpx;">升贴水</view>
+        <view class="th" style="width:120rpx;">基差</view>
+        <view class="th" style="width:120rpx;">年化基差</view>
+        <view class="th" style="width:90rpx;">剩余天数</view>
+        <view class="th" style="width:140rpx;">到期日</view>
+      </view>
+
+      <view class="table-row {{item.alarm ? 'alarm-row' : ''}}" wx:for="{{filteredData}}" wx:key="id">
+        <view class="td" style="width:200rpx;">
+          <text class="symbol-name">{{item.symbol}}</text>
+          <view class="contract-badge">{{item.contract}}</view>
+        </view>
+        <view class="td {{item.change >= 0 ? 'up' : 'down'}}" style="width:140rpx;font-weight:600;">
+          {{item.price}}
+        </view>
+        <view class="td {{item.change >= 0 ? 'up' : 'down'}}" style="width:120rpx;">
+          {{item.changePercent}}
+        </view>
+        <view class="td" style="width:110rpx;">
+          <view class="premium-tag {{item.premiumTagCls}}">{{item.premiumTag}}</view>
+        </view>
+        <view class="td {{item.basisDiff >= 0 ? 'up' : 'down'}}" style="width:120rpx;">
+          {{item.basisDiff}}
+        </view>
+        <view class="td {{item.annualBasis >= 0 ? 'up' : 'down'}} {{item.alarm ? 'alarm-text' : ''}}" style="width:120rpx;">
+          {{item.annualBasis}}
+        </view>
+        <view class="td" style="width:90rpx;">
+          {{item.deliveryDays}}
+        </view>
+        <view class="td" style="width:140rpx;">
+          {{item.expireTime}}
+        </view>
+      </view>
+    </view>
+
+    <view class="empty-state" wx:if="{{filteredData.length === 0 && !isLoading && !error}}">
+      <view class="empty-icon">📊</view>
+      <text class="empty-title">暂无数据</text>
+      <text class="empty-desc">正在加载行情数据...</text>
+    </view>
+
+    <view class="empty-state error" wx:if="{{error && filteredData.length === 0}}">
+      <view class="empty-icon">⚠️</view>
+      <text class="empty-title">加载失败</text>
+      <text class="empty-desc">{{error}}</text>
+      <view class="retry-btn" bindtap="manualRefresh">重试</view>
+    </view>
+  </view>
+
+  <view class="legend" wx:if="{{filteredData.length > 0}}">
+    <view class="legend-item">
+      <view class="legend-color up"></view>
+      <text>上涨/升水</text>
+    </view>
+    <view class="legend-item">
+      <view class="legend-color down"></view>
+      <text>下跌/贴水</text>
+    </view>
+    <view class="legend-item">
+      <view class="legend-color alarm"></view>
+      <text>超阈值</text>
+    </view>
+  </view>
+</view>

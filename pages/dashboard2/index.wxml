@@ -1,0 +1,206 @@
+<view class="dashboard-container">
+  <view class="dashboard-header">
+    <view class="header-left">
+      <text class="dashboard-title">ETF波动率监控</text>
+      <text class="update-time">更新: {{lastUpdateTime}}</text>
+    </view>
+    <view class="header-actions">
+      <view class="icon-btn {{showSettings ? 'active' : ''}}" bindtap="toggleSettings">
+        <text>⚙</text>
+      </view>
+      <view class="icon-btn {{isRefreshing ? 'loading' : ''}}" bindtap="manualRefresh">
+        <text>↻</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="etf-selector">
+    <text class="selector-label">标的ETF:</text>
+    <picker mode="selector" range="{{etfList}}" range-key="name" value="{{selectedETF}}" bindchange="onETFChange">
+      <view class="picker-value">
+        <text>{{selectedETFName}}</text>
+        <text class="picker-arrow">▼</text>
+      </view>
+    </picker>
+  </view>
+
+  <view class="etf-tags">
+    <view class="etf-tag {{item.code === selectedETF ? 'active' : ''}}" 
+          wx:for="{{etfList}}" wx:key="code"
+          data-code="{{item.code}}" data-name="{{item.name}}" bindtap="selectETF">
+      <text class="tag-text">{{item.shortName}}</text>
+      <text class="tag-badge" wx:if="{{item.hasOption}}">期权</text>
+    </view>
+  </view>
+
+  <view class="settings-panel {{showSettings ? 'show' : ''}}">
+    <view class="settings-section">
+      <view class="section-title">更新频率</view>
+      <view class="frequency-options">
+        <view class="frequency-btn {{refreshInterval === 15000 ? 'active' : ''}}" data-interval="15000" bindtap="setRefreshInterval">15秒</view>
+        <view class="frequency-btn {{refreshInterval === 30000 ? 'active' : ''}}" data-interval="30000" bindtap="setRefreshInterval">30秒</view>
+        <view class="frequency-btn {{refreshInterval === 60000 ? 'active' : ''}}" data-interval="60000" bindtap="setRefreshInterval">1分钟</view>
+        <view class="frequency-btn {{refreshInterval === 300000 ? 'active' : ''}}" data-interval="300000" bindtap="setRefreshInterval">5分钟</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="quote-card">
+    <view class="quote-header">
+      <text class="quote-name">{{selectedETFName}}</text>
+      <text class="quote-code">{{selectedETF}}</text>
+    </view>
+    <view class="quote-body">
+      <view class="quote-main">
+        <text class="quote-price {{etfQuote.changePercent >= 0 ? 'up' : 'down'}}">{{etfQuote.price}}</text>
+        <view class="quote-change {{etfQuote.changePercent >= 0 ? 'up' : 'down'}}">
+          <text>{{etfQuote.changePercent >= 0 ? '+' : ''}}{{etfQuote.changePercentStr}}%</text>
+        </view>
+      </view>
+      <view class="quote-detail">
+        <view class="detail-item">
+          <text class="detail-label">开盘</text>
+          <text class="detail-value">{{etfQuote.open}}</text>
+        </view>
+        <view class="detail-item">
+          <text class="detail-label">昨收</text>
+          <text class="detail-value">{{etfQuote.prevClose}}</text>
+        </view>
+        <view class="detail-item">
+          <text class="detail-label">最高</text>
+          <text class="detail-value up">{{etfQuote.high}}</text>
+        </view>
+        <view class="detail-item">
+          <text class="detail-label">最低</text>
+          <text class="detail-value down">{{etfQuote.low}}</text>
+        </view>
+        <view class="detail-item">
+          <text class="detail-label">成交量</text>
+          <text class="detail-value">{{etfQuote.volumeStr}}</text>
+        </view>
+        <view class="detail-item">
+          <text class="detail-label">成交额</text>
+          <text class="detail-value">{{etfQuote.amountStr}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="tabs-bar">
+    <view class="tab-item {{activeTab === 'chain' ? 'active' : ''}}" data-tab="chain" bindtap="switchTab" wx:if="{{contractMonths.length > 0}}">
+      <text class="tab-text">期权链</text>
+    </view>
+    <view class="tab-item {{activeTab === 'skew' ? 'active' : ''}}" data-tab="skew" bindtap="switchTab" wx:if="{{contractMonths.length > 0}}">
+      <text class="tab-text">偏斜</text>
+    </view>
+    <view class="tab-item {{activeTab === 'hv' ? 'active' : ''}}" data-tab="hv" bindtap="switchTab">
+      <text class="tab-text">HV</text>
+    </view>
+  </view>
+
+  <view class="contract-picker" wx:if="{{contractMonths.length > 0 && activeTab !== 'hv'}}">
+    <text class="picker-label">合约月份:</text>
+    <picker mode="selector" range="{{contractMonths}}" value="{{selectedMonthIndex}}" bindchange="onMonthChange">
+      <view class="picker-value">
+        <text>{{selectedMonth}}</text>
+        <text class="picker-arrow">▼</text>
+      </view>
+    </picker>
+  </view>
+
+  <view class="tab-content" wx:if="{{activeTab === 'chain'}}">
+    <view class="iv-summary" wx:if="{{ivStats.avgIV > 0}}">
+      <view class="iv-stat">
+        <text class="iv-label">平均IV</text>
+        <text class="iv-value">{{ivStats.avgIV}}%</text>
+      </view>
+      <view class="iv-stat">
+        <text class="iv-label">最大IV</text>
+        <text class="iv-value up">{{ivStats.maxIV}}%</text>
+      </view>
+      <view class="iv-stat">
+        <text class="iv-label">最小IV</text>
+        <text class="iv-value down">{{ivStats.minIV}}%</text>
+      </view>
+      <view class="iv-stat">
+        <text class="iv-label">偏斜</text>
+        <text class="iv-value {{ivStats.skew > 0 ? 'up' : 'down'}}">{{ivStats.skew}}%</text>
+      </view>
+    </view>
+
+    <view class="options-chain-table" wx:if="{{optionsChain.length > 0}}">
+      <view class="chain-header">
+        <text class="chain-cell call-iv">Call IV</text>
+        <text class="chain-cell call-price">买价</text>
+        <text class="chain-cell strike">行权价</text>
+        <text class="chain-cell put-price">买价</text>
+        <text class="chain-cell put-iv">Put IV</text>
+      </view>
+      <view class="chain-body">
+        <view class="chain-row {{item.callIV > 0 && item.putIV > 0 && (item.strike * 100) == (etfQuote.price * 100) ? 'atm' : ''}}" 
+              wx:for="{{optionsChain}}" wx:key="strike">
+          <text class="chain-cell call-iv {{item.callIV > 0 ? 'has-data' : ''}}">{{item.callIV > 0 ? item.callIV + '%' : '-'}}</text>
+          <text class="chain-cell call-price {{item.callPrice > 0 ? 'has-data' : ''}}">{{item.callPrice > 0 ? item.callPrice : '-'}}</text>
+          <text class="chain-cell strike">{{item.strike}}</text>
+          <text class="chain-cell put-price {{item.putPrice > 0 ? 'has-data' : ''}}">{{item.putPrice > 0 ? item.putPrice : '-'}}</text>
+          <text class="chain-cell put-iv {{item.putIV > 0 ? 'has-data' : ''}}">{{item.putIV > 0 ? item.putIV + '%' : '-'}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="empty-state" wx:if="{{optionsChain.length === 0 && !isLoading}}">
+      <view class="empty-icon">📋</view>
+      <text class="empty-title">暂无期权数据</text>
+      <text class="empty-desc">该ETF暂不支持期权数据查询</text>
+    </view>
+  </view>
+
+  <view class="tab-content" wx:if="{{activeTab === 'skew'}}">
+    <view class="chart-card">
+      <view class="chart-header">
+        <text class="chart-title">波动率偏斜曲线</text>
+        <text class="chart-subtitle">Call IV vs Put IV by Strike</text>
+      </view>
+      <view class="chart-content">
+        <canvas type="2d" id="skewChart" class="skew-canvas"></canvas>
+      </view>
+    </view>
+  </view>
+
+  <view class="tab-content" wx:if="{{activeTab === 'hv'}}">
+    <view class="hv-section">
+      <view class="section-header">
+        <text class="section-title">历史波动率 (HV)</text>
+        <text class="section-desc">基于真实K线数据计算</text>
+      </view>
+
+      <view class="hv-cards">
+        <view class="hv-card {{item.days === selectedPeriod ? 'selected' : ''}}" 
+              wx:for="{{hvData}}" wx:key="days" 
+              data-period="{{item.days}}" bindtap="selectPeriod">
+          <text class="hv-label">{{item.label}}</text>
+          <text class="hv-value">{{item.value}}%</text>
+          <view class="hv-bar">
+            <view class="hv-bar-fill" style="width: {{item.value / 80 * 100}}%"></view>
+          </view>
+        </view>
+      </view>
+
+      <view class="chart-card">
+        <view class="chart-header">
+          <text class="chart-title">HV走势图</text>
+        </view>
+        <view class="chart-content">
+          <canvas type="2d" id="hvChart" class="hv-canvas"></canvas>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty-state error" wx:if="{{error}}">
+    <view class="empty-icon">⚠️</view>
+    <text class="empty-title">加载失败</text>
+    <text class="empty-desc">{{error}}</text>
+    <view class="retry-btn" bindtap="manualRefresh">重试</view>
+  </view>
+</view>

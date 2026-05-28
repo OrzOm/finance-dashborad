@@ -1,0 +1,280 @@
+<view class="dashboard-container">
+  <view class="dashboard-header">
+    <view class="header-left">
+      <text class="dashboard-title">跨市场联动监控</text>
+      <text class="update-time">更新: {{lastUpdateTime}}</text>
+    </view>
+    <view class="header-actions">
+      <view class="icon-btn {{showSettings ? 'active' : ''}}" bindtap="toggleSettings">
+        <text>⚙</text>
+      </view>
+      <view class="icon-btn {{isRefreshing ? 'loading' : ''}}" bindtap="manualRefresh">
+        <text>↻</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="settings-panel {{showSettings ? 'show' : ''}}">
+    <view class="settings-section">
+      <view class="section-title">更新频率</view>
+      <view class="frequency-options">
+        <view class="frequency-btn {{refreshInterval === 10000 ? 'active' : ''}}" data-interval="10000" bindtap="setRefreshInterval">10秒</view>
+        <view class="frequency-btn {{refreshInterval === 15000 ? 'active' : ''}}" data-interval="15000" bindtap="setRefreshInterval">15秒</view>
+        <view class="frequency-btn {{refreshInterval === 30000 ? 'active' : ''}}" data-interval="30000" bindtap="setRefreshInterval">30秒</view>
+        <view class="frequency-btn {{refreshInterval === 60000 ? 'active' : ''}}" data-interval="60000" bindtap="setRefreshInterval">1分钟</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="tabs">
+    <view class="tab-item {{activeTab === 'overview' ? 'active' : ''}}" data-tab="overview" bindtap="switchTab">
+      <text>总览</text>
+    </view>
+    <view class="tab-item {{activeTab === 'ah' ? 'active' : ''}}" data-tab="ah" bindtap="switchTab">
+      <text>AH溢价</text>
+    </view>
+    <view class="tab-item {{activeTab === 'north' ? 'active' : ''}}" data-tab="north" bindtap="switchTab">
+      <text>北向资金</text>
+    </view>
+  </view>
+
+  <view class="content-area">
+    <view class="overview-panel" wx:if="{{activeTab === 'overview'}}">
+      <view class="section-title-bar">
+        <text class="section-title">全球市场</text>
+      </view>
+
+      <view class="market-groups">
+        <view class="market-group">
+          <view class="group-header">
+            <view class="group-dot a-share"></view>
+            <text class="group-title">A股</text>
+          </view>
+          <view class="market-cards">
+            <view class="market-card" wx:for="{{marketData}}" wx:key="code" wx:if="{{item.market === 'A股'}}">
+              <view class="card-header">
+                <text class="card-name">{{item.shortName}}</text>
+                <text class="card-change {{item.changePercent >= 0 ? 'up' : 'down'}}">
+                  {{item.changePercent >= 0 ? '+' : ''}}{{item.changePercent}}%
+                </text>
+              </view>
+              <text class="card-price">{{item.price}}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="market-group">
+          <view class="group-header">
+            <view class="group-dot hk"></view>
+            <text class="group-title">港股</text>
+          </view>
+          <view class="market-cards">
+            <view class="market-card" wx:for="{{marketData}}" wx:key="code" wx:if="{{item.market === '港股'}}">
+              <view class="card-header">
+                <text class="card-name">{{item.shortName}}</text>
+                <text class="card-change {{item.changePercent >= 0 ? 'up' : 'down'}}">
+                  {{item.changePercent >= 0 ? '+' : ''}}{{item.changePercent}}%
+                </text>
+              </view>
+              <text class="card-price">{{item.price}}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="market-group">
+          <view class="group-header">
+            <view class="group-dot us"></view>
+            <text class="group-title">美股</text>
+          </view>
+          <view class="market-cards">
+            <view class="market-card" wx:for="{{marketData}}" wx:key="code" wx:if="{{item.market === '美股'}}">
+              <view class="card-header">
+                <text class="card-name">{{item.shortName}}</text>
+                <text class="card-change {{item.changePercent >= 0 ? 'up' : 'down'}}">
+                  {{item.changePercent >= 0 ? '+' : ''}}{{item.changePercent}}%
+                </text>
+              </view>
+              <text class="card-price">{{item.price}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="section-title-bar">
+        <text class="section-title">关键指标</text>
+      </view>
+
+      <view class="indicators-grid">
+        <view class="indicator-card">
+          <view class="indicator-header">
+            <text class="indicator-title">AH溢价</text>
+            <text class="indicator-icon">📊</text>
+          </view>
+          <text class="indicator-value">{{ahPremiumIndex || '--'}}</text>
+          <text class="indicator-change {{ahPremiumChange >= 0 ? 'up' : 'down'}}">
+            {{ahPremiumChange >= 0 ? '+' : ''}}{{ahPremiumChange}}%
+          </text>
+        </view>
+
+        <view class="indicator-card">
+          <view class="indicator-header">
+            <text class="indicator-title">USD/CNH</text>
+            <text class="indicator-icon">💱</text>
+          </view>
+          <text class="indicator-value">{{exchangeRate.usdcnh || '--'}}</text>
+          <text class="indicator-change {{exchangeRate.change >= 0 ? 'up' : 'down'}}">
+            {{exchangeRate.change >= 0 ? '+' : ''}}{{exchangeRate.change}}
+          </text>
+        </view>
+
+        <view class="indicator-card">
+          <view class="indicator-header">
+            <text class="indicator-title">北向资金</text>
+            <text class="indicator-icon">💰</text>
+          </view>
+          <text class="indicator-value">{{northboundFlow.total}}亿</text>
+          <text class="indicator-change {{northboundFlow.total >= 0 ? 'up' : 'down'}}">
+            今日净流入
+          </text>
+        </view>
+
+        <view class="indicator-card">
+          <view class="indicator-header">
+            <text class="indicator-title">10Y国债</text>
+            <text class="indicator-icon">📈</text>
+          </view>
+          <text class="indicator-value">{{bondYields.current[3].yield || '--'}}%</text>
+          <text class="indicator-change {{bondYields.current[3].change >= 0 ? 'up' : 'down'}}">
+            {{bondYields.current[3].change >= 0 ? '+' : ''}}{{bondYields.current[3].change}}
+          </text>
+        </view>
+      </view>
+
+      <view class="section-title-bar">
+        <text class="section-title">相关性分析</text>
+      </view>
+
+      <view class="correlation-card">
+        <view class="correlation-item">
+          <text class="corr-label">A股-港股 相关性</text>
+          <view class="corr-bar-bg">
+            <view class="corr-bar-fill" style="width: {{correlationData.ashk * 100}}%"></view>
+          </view>
+          <text class="corr-value">{{correlationData.ashk}}</text>
+        </view>
+        <view class="correlation-item">
+          <text class="corr-label">A股-美股 相关性</text>
+          <view class="corr-bar-bg">
+            <view class="corr-bar-fill" style="width: {{correlationData.asus * 100}}%"></view>
+          </view>
+          <text class="corr-value">{{correlationData.asus}}</text>
+        </view>
+      </view>
+
+      <view class="section-title-bar">
+        <text class="section-title">国债收益率曲线</text>
+      </view>
+
+      <view class="bond-curve-card">
+        <view class="bond-curve-items">
+          <view class="bond-item" wx:for="{{bondYields.current}}" wx:key="code">
+            <text class="bond-label">{{item.shortName}}</text>
+            <text class="bond-value">{{item.yield}}%</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="ah-panel" wx:if="{{activeTab === 'ah'}}">
+      <view class="ah-card">
+        <view class="ah-header">
+          <text class="ah-title">AH溢价指数</text>
+          <view class="ah-value-box">
+            <text class="ah-value">{{ahPremiumIndex || '--'}}</text>
+            <text class="ah-change {{ahPremiumChange >= 0 ? 'up' : 'down'}}">
+              {{ahPremiumChange >= 0 ? '+' : ''}}{{ahPremiumChange}}%
+            </text>
+          </view>
+        </view>
+        <view class="ah-chart-container">
+          <canvas type="2d" id="ahChart" class="ah-canvas"></canvas>
+        </view>
+        <view class="ah-legend">
+          <view class="legend-item">
+            <view class="legend-dot"></view>
+            <text>溢价指数大于100: A股溢价</text>
+          </view>
+          <view class="legend-item">
+            <view class="legend-dot low"></view>
+            <text>溢价指数小于100: H股溢价</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="ah-explain-card">
+        <view class="explain-title">什么是AH溢价？</view>
+        <view class="explain-content">
+          AH溢价指数衡量同时在A股和H股上市的公司股价差异。指数越高，表示A股相对H股越贵；指数越低，表示H股相对A股越贵。
+        </view>
+      </view>
+    </view>
+
+    <view class="north-panel" wx:if="{{activeTab === 'north'}}">
+      <view class="north-summary">
+        <view class="north-total-card">
+          <text class="north-total-label">今日净流入</text>
+          <text class="north-total-value {{northboundFlow.total >= 0 ? 'up' : 'down'}}">
+            {{northboundFlow.total >= 0 ? '+' : ''}}{{northboundFlow.total}}亿
+          </text>
+        </view>
+        <view class="north-detail-cards">
+          <view class="north-detail-card">
+            <text class="detail-label">沪股通</text>
+            <text class="detail-value {{northboundFlow.shConnect >= 0 ? 'up' : 'down'}}">
+              {{northboundFlow.shConnect >= 0 ? '+' : ''}}{{northboundFlow.shConnect}}亿
+            </text>
+          </view>
+          <view class="north-detail-card">
+            <text class="detail-label">深股通</text>
+            <text class="detail-value {{northboundFlow.szConnect >= 0 ? 'up' : 'down'}}">
+              {{northboundFlow.szConnect >= 0 ? '+' : ''}}{{northboundFlow.szConnect}}亿
+            </text>
+          </view>
+        </view>
+      </view>
+
+      <view class="north-chart-card">
+        <view class="north-chart-header">
+          <text class="north-chart-title">近20日北向资金流向</text>
+        </view>
+        <view class="north-chart-container">
+          <canvas type="2d" id="northChart" class="north-canvas"></canvas>
+        </view>
+        <view class="north-legend">
+          <view class="legend-item">
+            <view class="legend-dot up"></view>
+            <text>净流入</text>
+          </view>
+          <view class="legend-item">
+            <view class="legend-dot down"></view>
+            <text>净流出</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="north-explain-card">
+        <view class="explain-title">北向资金说明</view>
+        <view class="explain-content">
+          北向资金是指通过沪股通、深股通流入A股市场的境外资金，通常被视为外资对A股的态度指标。净流入表示外资买入，净流出表示外资卖出。
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty-state error" wx:if="{{error}}">
+    <view class="empty-icon">⚠️</view>
+    <text class="empty-title">加载失败</text>
+    <text class="empty-desc">{{error}}</text>
+    <view class="retry-btn" bindtap="manualRefresh">重试</view>
+  </view>
+</view>

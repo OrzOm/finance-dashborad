@@ -1,0 +1,56 @@
+{
+  "lazyCodeLoading": "requiredComponents",
+  "pages": [
+    "pages/dashboard1/index",
+    "pages/dashboard2/index",
+    "pages/dashboard3/index",
+    "pages/dashboard4/index",
+    "pages/dashboard5/index",
+    "pages/dashboard6/index"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#fff",
+    "navigationBarTitleText": "实时看板",
+    "navigationBarTextStyle": "black"
+  },
+  "tabBar": {
+    "color": "#999",
+    "selectedColor": "#07c160",
+    "backgroundColor": "#fff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/dashboard1/index",
+        "text": "期货",
+        "iconPath": "images/tabbar/home.png",
+        "selectedIconPath": "images/tabbar/home-active.png"
+      },
+      {
+        "pagePath": "pages/dashboard2/index",
+        "text": "期权",
+        "iconPath": "images/tabbar/chart.png",
+        "selectedIconPath": "images/tabbar/chart-active.png"
+      },
+      {
+        "pagePath": "pages/dashboard3/index",
+        "text": "联动",
+        "iconPath": "images/tabbar/data.png",
+        "selectedIconPath": "images/tabbar/data-active.png"
+      },
+      {
+        "pagePath": "pages/dashboard4/index",
+        "text": "资金",
+        "iconPath": "images/tabbar/settings.png",
+        "selectedIconPath": "images/tabbar/settings-active.png"
+      },
+      {
+        "pagePath": "pages/dashboard5/index",
+        "text": "异动",
+        "iconPath": "images/tabbar/chart.png",
+        "selectedIconPath": "images/tabbar/chart-active.png"
+      }
+    ]
+  },
+  "sitemapLocation": "sitemap.json"
+}

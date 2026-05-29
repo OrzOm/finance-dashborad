@@ -203,7 +203,17 @@
               </view>
             </view>
             <view class="abnormal-body">
+              <view class="abnormal-reason">
+                <text class="reason-label">异常原因:</text>
+                <text class="reason-value">{{item.reason}}</text>
+              </view>
               <view class="abnormal-metrics">
+                <view class="metric-item">
+                  <text class="metric-label">涨跌幅</text>
+                  <text class="metric-value {{item.changePercent >= 0 ? 'up' : 'down'}}">
+                    {{item.changePercent >= 0 ? '+' : ''}}{{item.changePercent}}%
+                  </text>
+                </view>
                 <view class="metric-item">
                   <text class="metric-label">偏离值</text>
                   <text class="metric-value {{item.deviation >= 0 ? 'up' : 'down'}}">
@@ -211,18 +221,16 @@
                   </text>
                 </view>
                 <view class="metric-item">
-                  <text class="metric-label">周期</text>
-                  <text class="metric-value">{{item.periodName}}</text>
+                  <text class="metric-label">换手率</text>
+                  <text class="metric-value">{{item.turnoverRate}}%</text>
                 </view>
                 <view class="metric-item">
-                  <text class="metric-label">触发次数</text>
-                  <text class="metric-value">{{item.triggerCount}}次</text>
+                  <text class="metric-label">成交额</text>
+                  <text class="metric-value">{{item.amount}}亿</text>
                 </view>
                 <view class="metric-item">
-                  <text class="metric-label">公告状态</text>
-                  <text class="metric-value {{item.announcementStatus === '已公告' ? 'announced' : 'pending'}}">
-                    {{item.announcementStatus}}
-                  </text>
+                  <text class="metric-label">交易日期</text>
+                  <text class="metric-value">{{item.tradeDate}}</text>
                 </view>
               </view>
             </view>
@@ -248,7 +256,17 @@
             </view>
           </view>
           <view class="abnormal-body">
+            <view class="abnormal-reason">
+              <text class="reason-label">异常原因:</text>
+              <text class="reason-value">{{item.reason}}</text>
+            </view>
             <view class="abnormal-metrics">
+              <view class="metric-item">
+                <text class="metric-label">涨跌幅</text>
+                <text class="metric-value {{item.changePercent >= 0 ? 'up' : 'down'}}">
+                  {{item.changePercent >= 0 ? '+' : ''}}{{item.changePercent}}%
+                </text>
+              </view>
               <view class="metric-item">
                 <text class="metric-label">偏离值</text>
                 <text class="metric-value {{item.deviation >= 0 ? 'up' : 'down'}}">
@@ -256,18 +274,16 @@
                 </text>
               </view>
               <view class="metric-item">
-                <text class="metric-label">周期</text>
-                <text class="metric-value">{{item.periodName}}</text>
+                <text class="metric-label">换手率</text>
+                <text class="metric-value">{{item.turnoverRate}}%</text>
               </view>
               <view class="metric-item">
-                <text class="metric-label">触发次数</text>
-                <text class="metric-value">{{item.triggerCount}}次</text>
+                <text class="metric-label">成交额</text>
+                <text class="metric-value">{{item.amount}}亿</text>
               </view>
               <view class="metric-item">
-                <text class="metric-label">公告状态</text>
-                <text class="metric-value {{item.announcementStatus === '已公告' ? 'announced' : 'pending'}}">
-                  {{item.announcementStatus}}
-                </text>
+                <text class="metric-label">交易日期</text>
+                <text class="metric-value">{{item.tradeDate}}</text>
               </view>
             </view>
           </view>

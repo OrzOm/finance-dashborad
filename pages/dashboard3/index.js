@@ -338,7 +338,6 @@ Page({
 
           try {
             const data = res.data;
-            console.log('AH溢价API返回数据:', JSON.stringify(data));
 
             if (data && data.rc === 0 && data.data) {
               const d = data.data;
@@ -366,7 +365,6 @@ Page({
                 history: history
               });
             } else {
-              console.log('AH溢价数据为空，使用默认值');
               resolve({
                 index: '119.50',
                 change: '0.00',
@@ -567,13 +565,11 @@ Page({
 
           try {
             const data = typeof res.data === 'string' ? res.data : String(res.data);
-            console.log('汇率API返回数据:', data);
             
             const match = data.match(/var hq_str_[^=]+="([^"]*)"/);
 
             if (match && match[1]) {
               const parts = match[1].split(',');
-              console.log('汇率数据字段数量:', parts.length);
               
               const currentRate = parseFloat(parts[0]) || 7.25;
               const prevClose = parseFloat(parts[7]) || currentRate;
@@ -599,7 +595,6 @@ Page({
                 history: history
               });
             } else {
-              console.log('汇率数据格式不匹配，使用默认值');
               resolve({
                 usdcnh: '7.2500',
                 change: '0.0000',

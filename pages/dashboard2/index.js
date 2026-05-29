@@ -349,17 +349,14 @@ Page({
       this.fetchOptionCodes(stockId, monthStr, 'DOWN')
     ])
       .then(([callCodes, putCodes]) => {
-        console.log('期权代码:', { callCodes: callCodes.length, putCodes: putCodes.length });
         return Promise.all([
           this.fetchOptionQuotes(callCodes),
           this.fetchOptionQuotes(putCodes)
         ]).then(([callData, putData]) => {
-          console.log('期权行情:', { callData: callData.length, putData: putData.length });
           return this.buildOptionsChain(callData, putData);
         });
       })
       .then(chain => {
-        console.log('期权链:', chain.length);
         const ivs = chain.filter(o => o.callIV > 0).map(o => o.callIV);
         const putIVs = chain.filter(o => o.putIV > 0).map(o => o.putIV);
         const allIVs = [...ivs, ...putIVs];
@@ -389,7 +386,6 @@ Page({
   fetchOptionCodes(stockId, month, direction) {
     return new Promise((resolve, reject) => {
       const url = `https://hq.sinajs.cn/list=OP_${direction}_${stockId}${month}`;
-      console.log('获取期权代码:', url);
 
       wx.request({
         url: url,
@@ -401,7 +397,6 @@ Page({
         timeout: 10000,
         success: (res) => {
           if (res.statusCode !== 200 || !res.data) {
-            console.error('期权代码HTTP错误:', res.statusCode);
             resolve([]);
             return;
           }
@@ -412,19 +407,15 @@ Page({
 
             if (match && match[1]) {
               const codes = match[1].split(',').filter(c => c.trim());
-              console.log('期权代码数量:', direction, codes.length);
               resolve(codes);
               return;
             }
-            console.log('期权代码为空:', direction);
             resolve([]);
           } catch (e) {
-            console.error('期权代码解析失败:', e);
             resolve([]);
           }
         },
         fail: (err) => {
-          console.error('期权代码请求失败:', err);
           resolve([]);
         }
       });
@@ -450,7 +441,6 @@ Page({
         timeout: 15000,
         success: (res) => {
           if (res.statusCode !== 200 || !res.data) {
-            console.error('期权行情HTTP错误:', res.statusCode);
             resolve([]);
             return;
           }
@@ -489,15 +479,12 @@ Page({
               });
             }
 
-            console.log('期权行情解析结果数量:', results.length);
             resolve(results);
           } catch (e) {
-            console.error('期权行情解析失败:', e);
             resolve([]);
           }
         },
         fail: (err) => {
-          console.error('期权行情请求失败:', err);
           resolve([]);
         }
       });
@@ -505,7 +492,6 @@ Page({
   },
 
   buildOptionsChain(callData, putData) {
-    console.log('buildOptionsChain:', { callCount: callData.length, putCount: putData.length });
     const chain = [];
     const strikes = new Set();
 
@@ -827,7 +813,6 @@ Page({
   drawHVChart(retryCount) {
     const count = retryCount || 0;
     if (count > 5) {
-      console.log('drawHVChart: canvas not found after retries');
       return;
     }
 
@@ -836,7 +821,6 @@ Page({
       .fields({ node: true, size: true })
       .exec((res) => {
         if (!res || !res[0] || !res[0].node) {
-          console.log('drawHVChart: canvas not found, retry', count);
           setTimeout(() => this.drawHVChart(count + 1), 200);
           return;
         }

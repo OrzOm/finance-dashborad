@@ -191,7 +191,7 @@ Page({
       const now = new Date();
 
       const fetchStockChanges = new Promise((res) => {
-        const url = 'https://push2ex.eastmoney.com/getAllStockChanges?type=8201&pageindex=0&pagesize=50&ut=7eea3edcaed734bea9cb3c4fac7a3b4b&dession=&_=$(Date.now())';
+        const url = 'https://push2ex.eastmoney.com/getAllStockChanges?type=8201,8202,8207,8208,8203,8204,8209,8210,8211,8212&pageindex=0&pagesize=50&ut=7eea3edcaed734bea9cb3c4fac7a3b4b&_=' + Date.now();
         wx.request({
           url: url,
           method: 'GET',
@@ -307,70 +307,49 @@ Page({
       const abnormalList = [];
       const now = new Date();
 
-      const fetchAbnormal = new Promise((res) => {
-        const url = 'https://push2.eastmoney.com/api/qt/clist/get?cb=&fid=f3&po=1&pz=30&pn=1&np=1&fltt=2&invt=2&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048&fields=f2,f3,f5,f6,f8,f12,f14,f15,f16,f17,f18';
+      const fetchAbnormalMonitor = new Promise((res) => {
+        const startDate = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${(now.getDate() - 30).toString().padStart(2, '0')}`;
+        const endDate = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
+        const url = `https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_MARKET_ABNORMAL_MONITOR&columns=ALL&filter=(TRADE_DATE%3E%3D%27${startDate}%27)(TRADE_DATE%3C%3D%27${endDate}%27)&pageNumber=1&pageSize=50&sortTypes=-1&sortColumns=TRADE_DATE&source=WEB&client=WEB&_=${Date.now()}`;
         wx.request({
           url: url,
           method: 'GET',
-          timeout: 10000,
+          timeout: 15000,
           success: (resp) => {
-            if (resp.statusCode === 200 && resp.data && resp.data.data && resp.data.data.diff) {
-              const records = resp.data.data.diff || [];
+            if (resp.statusCode === 200 && resp.data && resp.data.result && resp.data.result.data) {
+              const records = resp.data.result.data || [];
               records.forEach((item, index) => {
-                const code = item.f12 || '';
-                const name = item.f14 || '';
-                const price = (item.f2 || 0);
-                const changePercent = (item.f3 || 0);
-                const turnover = (item.f8 || 0);
-                let board = 'sh';
-                if (code.startsWith('0') || code.startsWith('002')) board = 'sz';
-                else if (code.startsWith('3')) board = 'cyb';
-                else if (code.startsWith('688')) board = 'kcb';
-                else if (code.startsWith('8') || code.startsWith('4')) board = 'bj';
+                const code = item.SECURITY_CODE || '';
+                const name = item.SECURITY_NAME || '';
+                const board = item.MARKET || 'unknown';
+                const reason = item.ABNORMAL_TYPE || '';
+                const tradeDate = item.TRADE_DATE || '';
+                const closePrice = item.CLOSE_PRICE || 0;
+                const changeRate = item.CHANGE_RATE || 0;
+                const turnoverRate = item.TURNOVERRATE || 0;
+                const accumAmount = item.ACCUM_AMOUNT || 0;
+                const deviation = item.DEVIATION || 0;
+                const isSevere = reason.includes('严重');
 
-                const threshold = BOARD_THRESHOLDS[board] || { normal: 20, severe: 50 };
-                const deviation = parseFloat(changePercent.toFixed(2));
-                const absDeviation = Math.abs(deviation);
-                const isSevere = absDeviation >= threshold.severe;
-                const isNormal = absDeviation >= threshold.normal && !isSevere;
-
-                if (isNormal || isSevere) {
-                  let period = '5d';
-                  let periodName = '5日';
-                  let periodDays = 5;
-
-                  if (absDeviation >= 100) {
-                    period = '30d';
-                    periodName = '30日';
-                    periodDays = 30;
-                  } else if (absDeviation >= 60) {
-                    period = '10d';
-                    periodName = '10日';
-                    periodDays = 10;
-                  }
-
-                  abnormalList.push({
-                    id: `abnormal_${index}`,
-                    stockCode: code,
-                    stockName: name,
-                    board: board,
-                    boardName: BOARD_TYPES.find(b => b.code === board)?.name || '',
-                    period: period,
-                    periodName: periodName,
-                    periodDays: periodDays,
-                    deviation: deviation,
-                    absDeviation: absDeviation,
-                    isSevere: isSevere,
-                    isNormal: isNormal,
-                    abnormalType: isSevere ? 'severe' : 'normal',
-                    abnormalTypeName: isSevere ? '严重异常波动' : '异常波动',
-                    price: price.toFixed(2),
-                    changePercent: parseFloat(changePercent.toFixed(2)),
-                    triggerCount: Math.ceil(turnover / 5),
-                    announcementStatus: isSevere ? '待公告' : '已公告',
-                    triggerDate: `${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`
-                  });
-                }
+                abnormalList.push({
+                  id: `abnormal_${index}`,
+                  stockCode: code,
+                  stockName: name,
+                  board: board,
+                  boardName: board,
+                  reason: reason,
+                  tradeDate: tradeDate ? tradeDate.split('T')[0] : '',
+                  price: closePrice ? closePrice.toFixed(2) : '--',
+                  changePercent: changeRate ? parseFloat(changeRate.toFixed(2)) : 0,
+                  turnoverRate: turnoverRate ? parseFloat(turnoverRate.toFixed(2)) : 0,
+                  amount: accumAmount ? (accumAmount / 100000000).toFixed(2) : '0',
+                  deviation: deviation ? parseFloat(deviation.toFixed(2)) : 0,
+                  absDeviation: Math.abs(deviation || 0),
+                  isSevere: isSevere,
+                  isNormal: !isSevere,
+                  abnormalType: isSevere ? 'severe' : 'normal',
+                  abnormalTypeName: isSevere ? '严重异常波动' : '异常波动'
+                });
               });
             }
             res();
@@ -379,9 +358,9 @@ Page({
         });
       });
 
-      Promise.all([fetchAbnormal]).then(() => {
+      Promise.all([fetchAbnormalMonitor]).then(() => {
         abnormalList.sort((a, b) => b.absDeviation - a.absDeviation);
-        resolve(abnormalList.slice(0, 30));
+        resolve(abnormalList.slice(0, 50));
       });
     });
   },

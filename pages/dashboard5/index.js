@@ -14,10 +14,7 @@ const BOARD_TYPES = [
 const ALERT_TYPES = [
   { code: 'all', name: '全部', icon: '📊' },
   { code: 'limit_up', name: '涨停', icon: '🔺', color: '#ef4444' },
-  { code: 'limit_down', name: '跌停', icon: '🔻', color: '#10b981' },
-  { code: 'surge', name: '涨幅居前', icon: '�', color: '#ef4444' },
-  { code: 'plunge', name: '跌幅居前', icon: '📉', color: '#10b981' },
-  { code: 'big_amount', name: '成交活跃', icon: '�', color: '#f59e0b' }
+  { code: 'surge', name: '涨幅居前', icon: '🚀', color: '#ef4444' }
 ];
 
 Page({
@@ -30,7 +27,7 @@ Page({
 
     activeTab: 'realtime',
     tabs: [
-      { key: 'realtime', name: '实时异动' },
+      { key: 'realtime', name: '涨幅榜' },
       { key: 'abnormal', name: '异常波动' }
     ],
 
@@ -164,98 +161,9 @@ Page({
     return new Promise((resolve) => {
       const alerts = [];
       const now = new Date();
-      const dateStr = now.getFullYear() + (now.getMonth() + 1).toString().padStart(2, '0') + now.getDate().toString().padStart(2, '0');
-
-      const fetchLimitUp = new Promise((res) => {
-        const url = 'https://push2ex.eastmoney.com/getTopicZTPool?ut=7eea3edcaed734bea9cb3c4fac7a3b4b&dession=&date=' + dateStr + '&_=' + Date.now();
-        wx.request({
-          url: url,
-          method: 'GET',
-          timeout: 10000,
-          success: (resp) => {
-            if (resp.statusCode === 200 && resp.data && resp.data.data && resp.data.data.pool) {
-              const pool = resp.data.data.pool || [];
-              pool.forEach((item, index) => {
-                const code = item.c || '';
-                const name = item.n || '';
-                const price = ((item.p || 0) / 100).toFixed(2);
-                const changePercent = ((item.zdp || 0) / 100).toFixed(2);
-                const amount = ((item.amount || 0) / 100000000).toFixed(2);
-                let board = 'sh';
-                if (code.startsWith('0') || code.startsWith('002')) board = 'sz';
-                else if (code.startsWith('3')) board = 'cyb';
-                else if (code.startsWith('688')) board = 'kcb';
-                else if (code.startsWith('8') || code.startsWith('4')) board = 'bj';
-
-                alerts.push({
-                  id: `limit_up_${index}`,
-                  stockCode: code,
-                  stockName: name,
-                  board: board,
-                  alertType: 'limit_up',
-                  alertName: '涨停',
-                  alertIcon: '�',
-                  alertColor: '#ef4444',
-                  time: item.fbt || '--:--:--',
-                  timestamp: now.getTime(),
-                  price: price,
-                  changePercent: parseFloat(changePercent),
-                  amount: amount
-                });
-              });
-            }
-            res();
-          },
-          fail: () => res()
-        });
-      });
-
-      const fetchLimitDown = new Promise((res) => {
-        const url = 'https://push2ex.eastmoney.com/getTopicDTPool?ut=7eea3edcaed734bea9cb3c4fac7a3b4b&dession=&date=' + dateStr + '&_=' + Date.now();
-        wx.request({
-          url: url,
-          method: 'GET',
-          timeout: 10000,
-          success: (resp) => {
-            if (resp.statusCode === 200 && resp.data && resp.data.data && resp.data.data.pool) {
-              const pool = resp.data.data.pool || [];
-              pool.forEach((item, index) => {
-                const code = item.c || '';
-                const name = item.n || '';
-                const price = ((item.p || 0) / 100).toFixed(2);
-                const changePercent = ((item.zdp || 0) / 100).toFixed(2);
-                const amount = ((item.amount || 0) / 100000000).toFixed(2);
-                let board = 'sh';
-                if (code.startsWith('0') || code.startsWith('002')) board = 'sz';
-                else if (code.startsWith('3')) board = 'cyb';
-                else if (code.startsWith('688')) board = 'kcb';
-                else if (code.startsWith('8') || code.startsWith('4')) board = 'bj';
-
-                alerts.push({
-                  id: `limit_down_${index}`,
-                  stockCode: code,
-                  stockName: name,
-                  board: board,
-                  alertType: 'limit_down',
-                  alertName: '跌停',
-                  alertIcon: '🔻',
-                  alertColor: '#10b981',
-                  time: item.fbt || '--:--:--',
-                  timestamp: now.getTime(),
-                  price: price,
-                  changePercent: parseFloat(changePercent),
-                  amount: amount
-                });
-              });
-            }
-            res();
-          },
-          fail: () => res()
-        });
-      });
 
       const fetchTopGainers = new Promise((res) => {
-        const url = 'https://push2.eastmoney.com/api/qt/clist/get?cb=&fid=f3&po=1&pz=15&pn=1&np=1&fltt=2&invt=2&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048&fields=f2,f3,f5,f6,f8,f12,f14,f15,f16,f17,f18';
+        const url = 'https://push2.eastmoney.com/api/qt/clist/get?cb=&fid=f3&po=1&pz=50&pn=1&np=1&fltt=2&invt=2&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048&fields=f2,f3,f4,f5,f6,f7,f8,f12,f14,f15,f16,f17,f18';
         wx.request({
           url: url,
           method: 'GET',
@@ -268,27 +176,54 @@ Page({
                 const name = item.f14 || '';
                 const price = (item.f2 || 0);
                 const changePercent = (item.f3 || 0);
-                const amount = ((item.f6 || 0) / 100000000).toFixed(2);
+                const changeAmount = (item.f4 || 0);
+                const volume = (item.f5 || 0);
+                const amount = (item.f6 || 0);
+                const amplitude = (item.f7 || 0);
+                const turnover = (item.f8 || 0);
+                const high = (item.f15 || 0);
+                const low = (item.f16 || 0);
+                const open = (item.f17 || 0);
+                const prevClose = (item.f18 || 0);
                 let board = 'sh';
                 if (code.startsWith('0') || code.startsWith('002')) board = 'sz';
                 else if (code.startsWith('3')) board = 'cyb';
                 else if (code.startsWith('688')) board = 'kcb';
                 else if (code.startsWith('8') || code.startsWith('4')) board = 'bj';
 
+                let alertType = 'surge';
+                let alertName = '涨幅居前';
+                let alertIcon = '🚀';
+                let alertColor = '#ef4444';
+
+                if (changePercent >= 9.9) {
+                  alertType = 'limit_up';
+                  alertName = '涨停';
+                  alertIcon = '�';
+                  alertColor = '#ef4444';
+                }
+
                 alerts.push({
                   id: `gain_${index}`,
+                  rank: index + 1,
                   stockCode: code,
                   stockName: name,
                   board: board,
-                  alertType: 'surge',
-                  alertName: '涨幅居前',
-                  alertIcon: '🚀',
-                  alertColor: '#ef4444',
-                  time: `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`,
-                  timestamp: now.getTime() - index * 1000,
+                  alertType: alertType,
+                  alertName: alertName,
+                  alertIcon: alertIcon,
+                  alertColor: alertColor,
                   price: price.toFixed(2),
                   changePercent: parseFloat(changePercent.toFixed(2)),
-                  amount: amount
+                  changeAmount: parseFloat(changeAmount.toFixed(2)),
+                  volume: volume,
+                  amount: (amount / 100000000).toFixed(2),
+                  amplitude: parseFloat(amplitude.toFixed(2)),
+                  turnover: parseFloat(turnover.toFixed(2)),
+                  high: high.toFixed(2),
+                  low: low.toFixed(2),
+                  open: open.toFixed(2),
+                  prevClose: prevClose.toFixed(2)
                 });
               });
             }
@@ -298,8 +233,8 @@ Page({
         });
       });
 
-      Promise.all([fetchLimitUp, fetchLimitDown, fetchTopGainers]).then(() => {
-        alerts.sort((a, b) => b.timestamp - a.timestamp);
+      Promise.all([fetchTopGainers]).then(() => {
+        alerts.sort((a, b) => b.changePercent - a.changePercent);
         resolve(alerts.slice(0, 50));
       });
     });

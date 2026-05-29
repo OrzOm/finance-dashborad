@@ -75,7 +75,7 @@
       </view>
 
       <view class="alert-count">
-        <text>共 {{filteredAlerts.length}} 条异动</text>
+        <text>共 {{filteredAlerts.length}} 只股票</text>
       </view>
 
       <view class="alert-list">
@@ -83,6 +83,7 @@
           <view class="alert-content">
             <view class="alert-header">
               <view class="stock-info">
+                <text class="stock-rank">{{item.rank}}</text>
                 <text class="stock-name">{{item.stockName}}</text>
                 <text class="stock-code">{{item.stockCode}}</text>
               </view>
@@ -96,10 +97,23 @@
                 <text class="change {{item.changePercent >= 0 ? 'up' : 'down'}}">
                   {{item.changePercent >= 0 ? '+' : ''}}{{item.changePercent}}%
                 </text>
+                <text class="change-amount {{item.changeAmount >= 0 ? 'up' : 'down'}}">
+                  {{item.changeAmount >= 0 ? '+' : ''}}{{item.changeAmount}}
+                </text>
               </view>
-              <view class="volume-info">
-                <text class="volume-label">成交:</text>
-                <text class="volume-value">{{item.amount}}万</text>
+              <view class="stock-metrics">
+                <view class="metric-item">
+                  <text class="metric-label">成交额</text>
+                  <text class="metric-value">{{item.amount}}亿</text>
+                </view>
+                <view class="metric-item">
+                  <text class="metric-label">换手率</text>
+                  <text class="metric-value">{{item.turnover}}%</text>
+                </view>
+                <view class="metric-item">
+                  <text class="metric-label">振幅</text>
+                  <text class="metric-value">{{item.amplitude}}%</text>
+                </view>
               </view>
             </view>
           </view>

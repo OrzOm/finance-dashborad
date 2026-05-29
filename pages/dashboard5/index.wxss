@@ -210,6 +210,17 @@
   gap: 8rpx;
 }
 
+.stock-rank {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #666;
+  background: #f3f4f6;
+  padding: 4rpx 12rpx;
+  border-radius: 6rpx;
+  min-width: 40rpx;
+  text-align: center;
+}
+
 .stock-name {
   font-size: 28rpx;
   font-weight: 600;
@@ -229,8 +240,8 @@
 
 .alert-body {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 12rpx;
 }
 
 .price-info {
@@ -250,26 +261,36 @@
   font-weight: 600;
 }
 
-.change.up {
+.change.up, .change-amount.up {
   color: #ef4444;
 }
 
-.change.down {
+.change.down, .change-amount.down {
   color: #10b981;
 }
 
-.volume-info {
+.change-amount {
+  font-size: 24rpx;
+  font-weight: 500;
+}
+
+.stock-metrics {
+  display: flex;
+  gap: 24rpx;
+}
+
+.metric-item {
   display: flex;
   align-items: center;
   gap: 4rpx;
 }
 
-.volume-label {
+.metric-label {
   font-size: 22rpx;
   color: #999;
 }
 
-.volume-value {
+.metric-value {
   font-size: 24rpx;
   color: #666;
 }

@@ -80,9 +80,6 @@
 
       <view class="alert-list">
         <view class="alert-item" wx:for="{{filteredAlerts}}" wx:key="id">
-          <view class="alert-time">
-            <text>{{item.time}}</text>
-          </view>
           <view class="alert-content">
             <view class="alert-header">
               <view class="stock-info">

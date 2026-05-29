@@ -151,27 +151,6 @@
       </view>
 
       <view class="section-title-bar">
-        <text class="section-title">相关性分析</text>
-      </view>
-
-      <view class="correlation-card">
-        <view class="correlation-item">
-          <text class="corr-label">A股-港股 相关性</text>
-          <view class="corr-bar-bg">
-            <view class="corr-bar-fill" style="width: {{correlationData.ashk * 100}}%"></view>
-          </view>
-          <text class="corr-value">{{correlationData.ashk}}</text>
-        </view>
-        <view class="correlation-item">
-          <text class="corr-label">A股-美股 相关性</text>
-          <view class="corr-bar-bg">
-            <view class="corr-bar-fill" style="width: {{correlationData.asus * 100}}%"></view>
-          </view>
-          <text class="corr-value">{{correlationData.asus}}</text>
-        </view>
-      </view>
-
-      <view class="section-title-bar">
         <text class="section-title">国债收益率曲线</text>
       </view>
 

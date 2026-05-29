@@ -365,57 +365,8 @@ Page({
       const abnormalList = [];
       const now = new Date();
 
-      const fetchSt = new Promise((res) => {
-        const url = 'https://push2ex.eastmoney.com/getSTTopicPool?ut=7eea3edcaed734bea9cb3c4fac7a3b4b&date=' + now.getFullYear() + (now.getMonth() + 1).toString().padStart(2, '0') + now.getDate().toString().padStart(2, '0') + '&_=1';
-        wx.request({
-          url: url,
-          method: 'GET',
-          timeout: 10000,
-          success: (resp) => {
-            if (resp.statusCode === 200 && resp.data && resp.data.data && resp.data.data.pool) {
-              const pool = resp.data.data.pool || [];
-              pool.forEach((item, index) => {
-                const code = item.c || '';
-                const name = item.n || '';
-                const price = ((item.p || 0) / 100).toFixed(2);
-                const changePercent = ((item.zdp || 0) / 100).toFixed(2);
-                let board = 'sh';
-                if (code.startsWith('0') || code.startsWith('002')) board = 'sz';
-                else if (code.startsWith('3')) board = 'cyb';
-                else if (code.startsWith('688')) board = 'kcb';
-                else if (code.startsWith('8') || code.startsWith('4')) board = 'bj';
-
-                abnormalList.push({
-                  id: `st_${index}`,
-                  stockCode: code,
-                  stockName: name,
-                  board: board,
-                  boardName: BOARD_TYPES.find(b => b.code === board)?.name || '',
-                  period: '30d',
-                  periodName: '30日',
-                  periodDays: 30,
-                  deviation: parseFloat(changePercent),
-                  absDeviation: Math.abs(parseFloat(changePercent)),
-                  isSevere: Math.abs(parseFloat(changePercent)) > 50,
-                  isNormal: Math.abs(parseFloat(changePercent)) > 20 && Math.abs(parseFloat(changePercent)) <= 50,
-                  abnormalType: Math.abs(parseFloat(changePercent)) > 50 ? 'severe' : 'normal',
-                  abnormalTypeName: Math.abs(parseFloat(changePercent)) > 50 ? '严重异常波动' : '异常波动',
-                  price: price,
-                  changePercent: parseFloat(changePercent),
-                  triggerCount: 1,
-                  announcementStatus: '待公告',
-                  triggerDate: `${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`
-                });
-              });
-            }
-            res();
-          },
-          fail: () => res()
-        });
-      });
-
-      const fetchNewHigh = new Promise((res) => {
-        const url = 'https://push2.eastmoney.com/api/qt/clist/get?cb=&fid=f3&po=1&pz=15&pn=1&np=1&fltt=2&invt=2&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048&fields=f2,f3,f5,f6,f8,f12,f14,f15,f16,f17,f18';
+      const fetchAbnormal = new Promise((res) => {
+        const url = 'https://push2.eastmoney.com/api/qt/clist/get?cb=&fid=f3&po=1&pz=30&pn=1&np=1&fltt=2&invt=2&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048&fields=f2,f3,f5,f6,f8,f12,f14,f15,f16,f17,f18';
         wx.request({
           url: url,
           method: 'GET',
@@ -428,8 +379,6 @@ Page({
                 const name = item.f14 || '';
                 const price = (item.f2 || 0);
                 const changePercent = (item.f3 || 0);
-                const high = (item.f15 || 0);
-                const low = (item.f16 || 0);
                 const turnover = (item.f8 || 0);
                 let board = 'sh';
                 if (code.startsWith('0') || code.startsWith('002')) board = 'sz';
@@ -444,15 +393,29 @@ Page({
                 const isNormal = absDeviation >= threshold.normal && !isSevere;
 
                 if (isNormal || isSevere) {
+                  let period = '5d';
+                  let periodName = '5日';
+                  let periodDays = 5;
+
+                  if (absDeviation >= 100) {
+                    period = '30d';
+                    periodName = '30日';
+                    periodDays = 30;
+                  } else if (absDeviation >= 60) {
+                    period = '10d';
+                    periodName = '10日';
+                    periodDays = 10;
+                  }
+
                   abnormalList.push({
                     id: `abnormal_${index}`,
                     stockCode: code,
                     stockName: name,
                     board: board,
                     boardName: BOARD_TYPES.find(b => b.code === board)?.name || '',
-                    period: '5d',
-                    periodName: '5日',
-                    periodDays: 5,
+                    period: period,
+                    periodName: periodName,
+                    periodDays: periodDays,
                     deviation: deviation,
                     absDeviation: absDeviation,
                     isSevere: isSevere,
@@ -474,7 +437,7 @@ Page({
         });
       });
 
-      Promise.all([fetchSt, fetchNewHigh]).then(() => {
+      Promise.all([fetchAbnormal]).then(() => {
         abnormalList.sort((a, b) => b.absDeviation - a.absDeviation);
         resolve(abnormalList.slice(0, 30));
       });

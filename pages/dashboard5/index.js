@@ -182,20 +182,19 @@ Page({
               records.forEach((item, index) => {
                 const code = item.f12 || '';
                 const name = item.f14 || '';
-                const price = (item.f2 || 0);
-                const changePercent = (item.f3 || 0);
-                const changeAmount = (item.f4 || 0);
-                const volume = (item.f5 || 0);
-                const amount = (item.f6 || 0);
-                const amplitude = (item.f7 || 0);
-                const turnover = (item.f8 || 0);
-                const pe = (item.f9 || 0);
-                const volumeRatio = (item.f10 || 0);
-                const high = (item.f15 || 0);
-                const low = (item.f16 || 0);
-                const open = (item.f17 || 0);
-                const prevClose = (item.f18 || 0);
-                const limitPrice = (item.f51 || 0);
+                const price = parseFloat(item.f2) || 0;
+                const changePercent = parseFloat(item.f3) || 0;
+                const changeAmount = parseFloat(item.f4) || 0;
+                const amount = parseFloat(item.f6) || 0;
+                const amplitude = parseFloat(item.f7) || 0;
+                const turnover = parseFloat(item.f8) || 0;
+                const pe = parseFloat(item.f9) || 0;
+                const volumeRatio = parseFloat(item.f10) || 0;
+                const high = parseFloat(item.f15) || 0;
+                const low = parseFloat(item.f16) || 0;
+                const open = parseFloat(item.f17) || 0;
+                const prevClose = parseFloat(item.f18) || 0;
+                const limitPrice = parseFloat(item.f51) || 0;
                 const board = getBoard(code);
                 const limitUp = limitPrice > 0 && price > 0 && price >= limitPrice;
 

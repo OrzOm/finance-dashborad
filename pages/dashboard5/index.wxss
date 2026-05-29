@@ -123,10 +123,35 @@
   transition: all 0.3s ease;
 }
 
+.tab-item {
+  flex: 1;
+  padding: 20rpx 0;
+  text-align: center;
+  font-size: 28rpx;
+  color: #666;
+  background: #f5f7fa;
+  border-radius: 12rpx;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
 .tab-item.active {
   background: #2563eb;
   color: #fff;
   font-weight: 600;
+}
+
+.tab-badge {
+  position: absolute;
+  top: -8rpx;
+  right: -8rpx;
+  background: #ef4444;
+  color: #fff;
+  font-size: 18rpx;
+  padding: 2rpx 8rpx;
+  border-radius: 16rpx;
+  min-width: 28rpx;
+  text-align: center;
 }
 
 .content-area {
@@ -165,43 +190,79 @@
   color: #fff;
 }
 
-.alert-count {
+.stock-count {
   margin-bottom: 16rpx;
   font-size: 24rpx;
   color: #666;
 }
 
-.alert-list {
+.stock-list {
   display: flex;
   flex-direction: column;
   gap: 12rpx;
 }
 
-.alert-item {
-  display: flex;
-  gap: 16rpx;
+.stock-item {
   background: #fff;
   border-radius: 16rpx;
   padding: 20rpx;
   box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
 }
 
-.alert-time {
-  width: 120rpx;
-  font-size: 24rpx;
-  color: #666;
-  padding-top: 4rpx;
+.stock-item.limit-up {
+  border-left: 6rpx solid #ef4444;
 }
 
-.alert-content {
+.stock-content {
   flex: 1;
 }
 
-.alert-header {
+.stock-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12rpx;
+}
+
+.limit-badge {
+  background: #ef4444;
+  color: #fff;
+  padding: 6rpx 16rpx;
+  border-radius: 8rpx;
+  font-size: 22rpx;
+  font-weight: 600;
+}
+
+.limit-threshold {
+  background: #fef3c7;
+  color: #d97706;
+  padding: 6rpx 16rpx;
+  border-radius: 8rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+}
+
+.limit-up-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+  padding: 16rpx 20rpx;
+  background: #fff;
+  border-radius: 12rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
+}
+
+.limit-up-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.limit-up-count {
+  font-size: 26rpx;
+  color: #ef4444;
+  font-weight: 600;
 }
 
 .stock-info {
@@ -232,13 +293,7 @@
   color: #999;
 }
 
-.alert-type-badge {
-  padding: 6rpx 16rpx;
-  border-radius: 8rpx;
-  font-size: 22rpx;
-}
-
-.alert-body {
+.stock-body {
   display: flex;
   flex-direction: column;
   gap: 12rpx;

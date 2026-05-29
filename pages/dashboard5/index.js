@@ -11,11 +11,39 @@ const BOARD_TYPES = [
   { code: 'bj', name: '北交所' }
 ];
 
-const ALERT_TYPES = [
-  { code: 'all', name: '全部', icon: '📊' },
-  { code: 'limit_up', name: '涨停', icon: '🔺', color: '#ef4444' },
-  { code: 'surge', name: '涨幅居前', icon: '🚀', color: '#ef4444' }
-];
+const LIMIT_UP_THRESHOLDS = {
+  'sh': 10,
+  'sz': 10,
+  'cyb': 20,
+  'kcb': 20,
+  'bj': 30,
+  'new': 44
+};
+
+function getLimitThreshold(code, name) {
+  if (name && (name.startsWith('N') || name.startsWith('C'))) {
+    return LIMIT_UP_THRESHOLDS['new'];
+  }
+  let board = 'sh';
+  if (code.startsWith('0') || code.startsWith('002')) board = 'sz';
+  else if (code.startsWith('3')) board = 'cyb';
+  else if (code.startsWith('688')) board = 'kcb';
+  else if (code.startsWith('8') || code.startsWith('4')) board = 'bj';
+  return LIMIT_UP_THRESHOLDS[board] || 10;
+}
+
+function isLimitUp(code, name, changePercent) {
+  const threshold = getLimitThreshold(code, name);
+  return changePercent >= threshold - 0.1;
+}
+
+function getBoard(code) {
+  if (code.startsWith('0') || code.startsWith('002')) return 'sz';
+  if (code.startsWith('3')) return 'cyb';
+  if (code.startsWith('688')) return 'kcb';
+  if (code.startsWith('8') || code.startsWith('4')) return 'bj';
+  return 'sh';
+}
 
 Page({
   data: {
@@ -25,16 +53,19 @@ Page({
     isRefreshing: false,
     error: null,
 
-    activeTab: 'realtime',
+    activeTab: 'gainers',
     tabs: [
-      { key: 'realtime', name: '涨幅榜' },
+      { key: 'gainers', name: '涨幅榜' },
+      { key: 'limit_up', name: '涨停列表' },
       { key: 'abnormal', name: '异常波动' }
     ],
 
-    realtimeAlerts: [],
-    filteredAlerts: [],
-    alertTypeFilter: 'all',
+    gainersList: [],
+    filteredGainers: [],
     boardFilter: 'all',
+
+    limitUpList: [],
+    limitUpCount: 0,
 
     abnormalStocks: [],
     filteredAbnormal: [],
@@ -75,7 +106,7 @@ Page({
       if (saved) {
         this.setData({
           refreshInterval: saved.refreshInterval || 10000,
-          activeTab: saved.activeTab || 'realtime'
+          activeTab: saved.activeTab || 'gainers'
         });
       }
     } catch (e) {
@@ -128,23 +159,27 @@ Page({
     this.setData({ isLoading: true, error: null });
 
     Promise.all([
-      this.fetchRealtimeAlerts(),
+      this.fetchStockData(),
       this.fetchAbnormalStocks()
     ])
-      .then(([realtimeAlerts, abnormalStocks]) => {
+      .then(([stockData, abnormalStocks]) => {
         const now = new Date();
         const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
 
+        const limitUpList = stockData.filter(item => item.isLimitUp);
+
         this.setData({
           lastUpdateTime: timeStr,
-          realtimeAlerts: realtimeAlerts,
+          gainersList: stockData,
+          limitUpList: limitUpList,
+          limitUpCount: limitUpList.length,
           abnormalStocks: abnormalStocks,
           isLoading: false,
           isRefreshing: false,
           error: null
         });
 
-        this.applyRealtimeFilter();
+        this.applyGainersFilter();
         this.applyAbnormalFilter();
       })
       .catch((error) => {
@@ -157,13 +192,12 @@ Page({
       });
   },
 
-  fetchRealtimeAlerts() {
+  fetchStockData() {
     return new Promise((resolve) => {
-      const alerts = [];
-      const now = new Date();
+      const stocks = [];
 
-      const fetchTopGainers = new Promise((res) => {
-        const url = 'https://push2.eastmoney.com/api/qt/clist/get?cb=&fid=f3&po=1&pz=50&pn=1&np=1&fltt=2&invt=2&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048&fields=f2,f3,f4,f5,f6,f7,f8,f12,f14,f15,f16,f17,f18';
+      const fetchGainers = new Promise((res) => {
+        const url = 'https://push2.eastmoney.com/api/qt/clist/get?cb=&fid=f3&po=1&pz=100&pn=1&np=1&fltt=2&invt=2&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048&fields=f2,f3,f4,f5,f6,f7,f8,f12,f14,f15,f16,f17,f18';
         wx.request({
           url: url,
           method: 'GET',
@@ -181,49 +215,26 @@ Page({
                 const amount = (item.f6 || 0);
                 const amplitude = (item.f7 || 0);
                 const turnover = (item.f8 || 0);
-                const high = (item.f15 || 0);
-                const low = (item.f16 || 0);
-                const open = (item.f17 || 0);
-                const prevClose = (item.f18 || 0);
-                let board = 'sh';
-                if (code.startsWith('0') || code.startsWith('002')) board = 'sz';
-                else if (code.startsWith('3')) board = 'cyb';
-                else if (code.startsWith('688')) board = 'kcb';
-                else if (code.startsWith('8') || code.startsWith('4')) board = 'bj';
+                const board = getBoard(code);
+                const limitThreshold = getLimitThreshold(code, name);
+                const limitUp = isLimitUp(code, name, changePercent);
 
-                let alertType = 'surge';
-                let alertName = '涨幅居前';
-                let alertIcon = '🚀';
-                let alertColor = '#ef4444';
-
-                if (changePercent >= 9.9) {
-                  alertType = 'limit_up';
-                  alertName = '涨停';
-                  alertIcon = '�';
-                  alertColor = '#ef4444';
-                }
-
-                alerts.push({
-                  id: `gain_${index}`,
+                stocks.push({
+                  id: `stock_${index}`,
                   rank: index + 1,
                   stockCode: code,
                   stockName: name,
                   board: board,
-                  alertType: alertType,
-                  alertName: alertName,
-                  alertIcon: alertIcon,
-                  alertColor: alertColor,
+                  boardName: BOARD_TYPES.find(b => b.code === board)?.name || board,
+                  isLimitUp: limitUp,
+                  limitThreshold: limitThreshold,
                   price: price.toFixed(2),
                   changePercent: parseFloat(changePercent.toFixed(2)),
                   changeAmount: parseFloat(changeAmount.toFixed(2)),
                   volume: volume,
                   amount: (amount / 100000000).toFixed(2),
                   amplitude: parseFloat(amplitude.toFixed(2)),
-                  turnover: parseFloat(turnover.toFixed(2)),
-                  high: high.toFixed(2),
-                  low: low.toFixed(2),
-                  open: open.toFixed(2),
-                  prevClose: prevClose.toFixed(2)
+                  turnover: parseFloat(turnover.toFixed(2))
                 });
               });
             }
@@ -233,9 +244,9 @@ Page({
         });
       });
 
-      Promise.all([fetchTopGainers]).then(() => {
-        alerts.sort((a, b) => b.changePercent - a.changePercent);
-        resolve(alerts.slice(0, 50));
+      Promise.all([fetchGainers]).then(() => {
+        stocks.sort((a, b) => b.changePercent - a.changePercent);
+        resolve(stocks);
       });
     });
   },
@@ -264,12 +275,7 @@ Page({
                 const accumAmount = item.ACCUM_AMOUNT || 0;
                 const turnoverRate = item.TURNOVERRATE || 0;
                 const tradeDate = item.TRADE_DATE || '';
-                let board = 'unknown';
-                if (code.startsWith('6')) board = 'sh';
-                else if (code.startsWith('0') || code.startsWith('002')) board = 'sz';
-                else if (code.startsWith('3')) board = 'cyb';
-                else if (code.startsWith('688')) board = 'kcb';
-                else if (code.startsWith('8') || code.startsWith('4')) board = 'bj';
+                const board = getBoard(code);
 
                 abnormalList.push({
                   id: `billboard_${index}`,
@@ -307,32 +313,22 @@ Page({
     this.saveSettings();
   },
 
-  setAlertTypeFilter(e) {
-    const type = e.currentTarget.dataset.type;
-    this.setData({ alertTypeFilter: type });
-    this.applyRealtimeFilter();
-  },
-
   setBoardFilter(e) {
     const board = e.currentTarget.dataset.board;
     this.setData({ boardFilter: board });
-    this.applyRealtimeFilter();
+    this.applyGainersFilter();
   },
 
-  applyRealtimeFilter() {
-    const { realtimeAlerts, alertTypeFilter, boardFilter } = this.data;
+  applyGainersFilter() {
+    const { gainersList, boardFilter } = this.data;
 
-    let filtered = [...realtimeAlerts];
-
-    if (alertTypeFilter !== 'all') {
-      filtered = filtered.filter(a => a.alertType === alertTypeFilter);
-    }
+    let filtered = [...gainersList];
 
     if (boardFilter !== 'all') {
       filtered = filtered.filter(a => a.board === boardFilter);
     }
 
-    this.setData({ filteredAlerts: filtered });
+    this.setData({ filteredGainers: filtered });
   },
 
   setAbnormalTypeFilter(e) {

@@ -27,8 +27,14 @@
   </view>
 
   <view class="tabs">
-    <view class="tab-item {{activeTab === 'realtime' ? 'active' : ''}}" data-tab="realtime" bindtap="switchTab">
-      <text>实时异动</text>
+    <view class="tab-item {{activeTab === 'gainers' ? 'active' : ''}}" data-tab="gainers" bindtap="switchTab">
+      <text>涨幅榜</text>
+    </view>
+    <view class="tab-item {{activeTab === 'limit_up' ? 'active' : ''}}" data-tab="limit_up" bindtap="switchTab">
+      <text>涨停列表</text>
+      <view class="tab-badge" wx:if="{{limitUpCount > 0}}">
+        <text>{{limitUpCount}}</text>
+      </view>
     </view>
     <view class="tab-item {{activeTab === 'abnormal' ? 'active' : ''}}" data-tab="abnormal" bindtap="switchTab">
       <text>异常波动</text>
@@ -36,20 +42,8 @@
   </view>
 
   <view class="content-area">
-    <view class="realtime-panel" wx:if="{{activeTab === 'realtime'}}">
+    <view class="gainers-panel" wx:if="{{activeTab === 'gainers'}}">
       <view class="filter-section">
-        <scroll-view scroll-x class="filter-scroll">
-          <view class="filter-bar">
-            <view class="filter-chip {{alertTypeFilter === 'all' ? 'active' : ''}}" data-type="all" bindtap="setAlertTypeFilter">
-              <text>全部</text>
-            </view>
-            <view class="filter-chip" wx:for="{{['surge','plunge','big_buy','big_sell','limit_up','limit_down','volume','new_high','new_low']}}" wx:key="*this"
-              data-type="{{item}}" bindtap="setAlertTypeFilter" class="filter-chip {{alertTypeFilter === item ? 'active' : ''}}">
-              <text>{{item === 'surge' ? '🚀 拉升' : item === 'plunge' ? '📉 跳水' : item === 'big_buy' ? '💰 大买' : item === 'big_sell' ? '💸 大卖' : item === 'limit_up' ? '🔺 涨停' : item === 'limit_down' ? '🔻 跌停' : item === 'volume' ? '📊 量比' : item === 'new_high' ? '🏆 新高' : '💀 新低'}}</text>
-            </view>
-          </view>
-        </scroll-view>
-
         <scroll-view scroll-x class="filter-scroll">
           <view class="filter-bar">
             <view class="filter-chip {{boardFilter === 'all' ? 'active' : ''}}" data-board="all" bindtap="setBoardFilter">
@@ -74,24 +68,25 @@
         </scroll-view>
       </view>
 
-      <view class="alert-count">
-        <text>共 {{filteredAlerts.length}} 只股票</text>
+      <view class="stock-count">
+        <text>共 {{filteredGainers.length}} 只股票</text>
       </view>
 
-      <view class="alert-list">
-        <view class="alert-item" wx:for="{{filteredAlerts}}" wx:key="id">
-          <view class="alert-content">
-            <view class="alert-header">
+      <view class="stock-list">
+        <view class="stock-item" wx:for="{{filteredGainers}}" wx:key="id">
+          <view class="stock-content">
+            <view class="stock-header">
               <view class="stock-info">
                 <text class="stock-rank">{{item.rank}}</text>
                 <text class="stock-name">{{item.stockName}}</text>
                 <text class="stock-code">{{item.stockCode}}</text>
+                <text class="board-tag">{{item.boardName}}</text>
               </view>
-              <view class="alert-type-badge" style="background: {{item.alertColor}}20; color: {{item.alertColor}}">
-                <text>{{item.alertIcon}} {{item.alertName}}</text>
+              <view class="limit-badge" wx:if="{{item.isLimitUp}}">
+                <text>涨停</text>
               </view>
             </view>
-            <view class="alert-body">
+            <view class="stock-body">
               <view class="price-info">
                 <text class="price">{{item.price}}</text>
                 <text class="change {{item.changePercent >= 0 ? 'up' : 'down'}}">
@@ -120,10 +115,66 @@
         </view>
       </view>
 
-      <view class="empty-state" wx:if="{{filteredAlerts.length === 0 && !isLoading}}">
+      <view class="empty-state" wx:if="{{filteredGainers.length === 0 && !isLoading}}">
         <view class="empty-icon">📊</view>
-        <text class="empty-title">暂无异动</text>
-        <text class="empty-desc">当前筛选条件下没有异动数据</text>
+        <text class="empty-title">暂无数据</text>
+        <text class="empty-desc">当前筛选条件下没有股票数据</text>
+      </view>
+    </view>
+
+    <view class="limit-up-panel" wx:if="{{activeTab === 'limit_up'}}">
+      <view class="limit-up-header">
+        <text class="limit-up-title">今日涨停</text>
+        <text class="limit-up-count">共 {{limitUpList.length}} 只</text>
+      </view>
+
+      <view class="stock-list">
+        <view class="stock-item limit-up" wx:for="{{limitUpList}}" wx:key="id">
+          <view class="stock-content">
+            <view class="stock-header">
+              <view class="stock-info">
+                <text class="stock-rank">{{index + 1}}</text>
+                <text class="stock-name">{{item.stockName}}</text>
+                <text class="stock-code">{{item.stockCode}}</text>
+                <text class="board-tag">{{item.boardName}}</text>
+              </view>
+              <view class="limit-threshold">
+                <text>{{item.limitThreshold}}%涨停</text>
+              </view>
+            </view>
+            <view class="stock-body">
+              <view class="price-info">
+                <text class="price">{{item.price}}</text>
+                <text class="change up">
+                  +{{item.changePercent}}%
+                </text>
+                <text class="change-amount up">
+                  {{item.changeAmount >= 0 ? '+' : ''}}{{item.changeAmount}}
+                </text>
+              </view>
+              <view class="stock-metrics">
+                <view class="metric-item">
+                  <text class="metric-label">成交额</text>
+                  <text class="metric-value">{{item.amount}}亿</text>
+                </view>
+                <view class="metric-item">
+                  <text class="metric-label">换手率</text>
+                  <text class="metric-value">{{item.turnover}}%</text>
+                </view>
+                <view class="metric-item">
+                  <text class="metric-label">振幅</text>
+                  <text class="metric-value">{{item.amplitude}}%</text>
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="empty-state" wx:if="{{limitUpList.length === 0 && !isLoading}}">
+        <view class="empty-icon">🔺</view>
+        <text class="empty-title">暂无涨停</text>
+        <text class="empty-desc">当前没有涨停股票</text>
       </view>
     </view>
 
@@ -149,52 +200,6 @@
             </view>
             <view class="filter-chip {{abnormalTypeFilter === 'severe' ? 'active' : ''}}" data-type="severe" bindtap="setAbnormalTypeFilter">
               <text>🔴 严重异常</text>
-            </view>
-          </view>
-        </scroll-view>
-
-        <scroll-view scroll-x class="filter-scroll">
-          <view class="filter-bar">
-            <view class="filter-chip {{abnormalBoardFilter === 'all' ? 'active' : ''}}" data-board="all" bindtap="setAbnormalBoardFilter">
-              <text>全部板块</text>
-            </view>
-            <view class="filter-chip {{abnormalBoardFilter === 'sh' ? 'active' : ''}}" data-board="sh" bindtap="setAbnormalBoardFilter">
-              <text>沪主板</text>
-            </view>
-            <view class="filter-chip {{abnormalBoardFilter === 'sz' ? 'active' : ''}}" data-board="sz" bindtap="setAbnormalBoardFilter">
-              <text>深主板</text>
-            </view>
-            <view class="filter-chip {{abnormalBoardFilter === 'cyb' ? 'active' : ''}}" data-board="cyb" bindtap="setAbnormalBoardFilter">
-              <text>创业板</text>
-            </view>
-            <view class="filter-chip {{abnormalBoardFilter === 'kcb' ? 'active' : ''}}" data-board="kcb" bindtap="setAbnormalBoardFilter">
-              <text>科创板</text>
-            </view>
-            <view class="filter-chip {{abnormalBoardFilter === 'bj' ? 'active' : ''}}" data-board="bj" bindtap="setAbnormalBoardFilter">
-              <text>北交所</text>
-            </view>
-          </view>
-        </scroll-view>
-
-        <scroll-view scroll-x class="filter-scroll">
-          <view class="filter-bar">
-            <view class="filter-chip {{abnormalPeriodFilter === 'all' ? 'active' : ''}}" data-period="all" bindtap="setAbnormalPeriodFilter">
-              <text>全部周期</text>
-            </view>
-            <view class="filter-chip {{abnormalPeriodFilter === '3d' ? 'active' : ''}}" data-period="3d" bindtap="setAbnormalPeriodFilter">
-              <text>3日</text>
-            </view>
-            <view class="filter-chip {{abnormalPeriodFilter === '5d' ? 'active' : ''}}" data-period="5d" bindtap="setAbnormalPeriodFilter">
-              <text>5日</text>
-            </view>
-            <view class="filter-chip {{abnormalPeriodFilter === '10d' ? 'active' : ''}}" data-period="10d" bindtap="setAbnormalPeriodFilter">
-              <text>10日</text>
-            </view>
-            <view class="filter-chip {{abnormalPeriodFilter === '30d' ? 'active' : ''}}" data-period="30d" bindtap="setAbnormalPeriodFilter">
-              <text>30日</text>
-            </view>
-            <view class="filter-chip {{abnormalPeriodFilter === '60d' ? 'active' : ''}}" data-period="60d" bindtap="setAbnormalPeriodFilter">
-              <text>60日</text>
             </view>
           </view>
         </scroll-view>
@@ -226,12 +231,6 @@
                   <text class="metric-label">涨跌幅</text>
                   <text class="metric-value {{item.changePercent >= 0 ? 'up' : 'down'}}">
                     {{item.changePercent >= 0 ? '+' : ''}}{{item.changePercent}}%
-                  </text>
-                </view>
-                <view class="metric-item">
-                  <text class="metric-label">偏离值</text>
-                  <text class="metric-value {{item.deviation >= 0 ? 'up' : 'down'}}">
-                    {{item.deviation >= 0 ? '+' : ''}}{{item.deviation}}%
                   </text>
                 </view>
                 <view class="metric-item">
@@ -279,12 +278,6 @@
                 <text class="metric-label">涨跌幅</text>
                 <text class="metric-value {{item.changePercent >= 0 ? 'up' : 'down'}}">
                   {{item.changePercent >= 0 ? '+' : ''}}{{item.changePercent}}%
-                </text>
-              </view>
-              <view class="metric-item">
-                <text class="metric-label">偏离值</text>
-                <text class="metric-value {{item.deviation >= 0 ? 'up' : 'down'}}">
-                  {{item.deviation >= 0 ? '+' : ''}}{{item.deviation}}%
                 </text>
               </view>
               <view class="metric-item">

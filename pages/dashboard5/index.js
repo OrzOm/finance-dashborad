@@ -196,7 +196,7 @@ Page({
                 const prevClose = parseFloat(item.f18) || 0;
                 const limitPrice = parseFloat(item.f51) || 0;
                 const board = getBoard(code);
-                const limitUp = limitPrice > 0 && price > 0 && price >= limitPrice;
+                const limitUp = limitPrice > 0 && price > 0 && price.toFixed(2) === limitPrice.toFixed(2);
 
                 stocks.push({
                   id: `stock_${index}`,

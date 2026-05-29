@@ -186,116 +186,298 @@ Page({
   },
 
   fetchRealtimeAlerts() {
-    return new Promise((resolve) => {
-      const stocks = [
-        { code: '600519', name: '贵州茅台', board: 'sh' },
-        { code: '000858', name: '五粮液', board: 'sz' },
-        { code: '300750', name: '宁德时代', board: 'cyb' },
-        { code: '688981', name: '中芯国际', board: 'kcb' },
-        { code: '002594', name: '比亚迪', board: 'sz' },
-        { code: '601318', name: '中国平安', board: 'sh' },
-        { code: '000001', name: '平安银行', board: 'sz' },
-        { code: '600036', name: '招商银行', board: 'sh' },
-        { code: '300059', name: '东方财富', board: 'cyb' },
-        { code: '002475', name: '立讯精密', board: 'sz' }
-      ];
-
+    return new Promise((resolve, reject) => {
       const alerts = [];
       const now = new Date();
 
-      for (let i = 0; i < 30; i++) {
-        const stock = stocks[Math.floor(Math.random() * stocks.length)];
-        const alertType = ALERT_TYPES[Math.floor(Math.random() * (ALERT_TYPES.length - 1)) + 1];
-        const minutesAgo = Math.floor(Math.random() * 240);
-        const alertTime = new Date(now.getTime() - minutesAgo * 60000);
-        const price = (100 + Math.random() * 200).toFixed(2);
-        const changePercent = (Math.random() * 20 - 10).toFixed(2);
-        const volume = (Math.random() * 10000 + 1000).toFixed(0);
-        const amount = (Math.random() * 100000 + 10000).toFixed(0);
+      const fetchLimitUp = new Promise((res) => {
+        const url = 'https://push2ex.eastmoney.com/getTopicZTPool?ut=7eea3edcaed734bea9cb3c4fac7a3b4b&dession=&date=' + now.getFullYear() + (now.getMonth() + 1).toString().padStart(2, '0') + now.getDate().toString().padStart(2, '0') + '&_=1';
+        wx.request({
+          url: url,
+          method: 'GET',
+          timeout: 10000,
+          success: (resp) => {
+            if (resp.statusCode === 200 && resp.data && resp.data.data && resp.data.data.pool) {
+              const pool = resp.data.data.pool || [];
+              pool.forEach((item, index) => {
+                const code = item.c || '';
+                const name = item.n || '';
+                const price = ((item.p || 0) / 100).toFixed(2);
+                const changePercent = ((item.zdp || 0) / 100).toFixed(2);
+                const amount = ((item.amount || 0) / 100000000).toFixed(2);
+                const volume = item.volume || 0;
+                let board = 'sh';
+                if (code.startsWith('0') || code.startsWith('002')) board = 'sz';
+                else if (code.startsWith('3')) board = 'cyb';
+                else if (code.startsWith('688')) board = 'kcb';
+                else if (code.startsWith('8') || code.startsWith('4')) board = 'bj';
 
-        alerts.push({
-          id: `alert_${i}`,
-          stockCode: stock.code,
-          stockName: stock.name,
-          board: stock.board,
-          alertType: alertType.code,
-          alertName: alertType.name,
-          alertIcon: alertType.icon,
-          alertColor: alertType.color,
-          time: `${alertTime.getHours().toString().padStart(2, '0')}:${alertTime.getMinutes().toString().padStart(2, '0')}:${alertTime.getSeconds().toString().padStart(2, '0')}`,
-          timestamp: alertTime.getTime(),
-          price: price,
-          changePercent: parseFloat(changePercent),
-          volume: volume,
-          amount: amount
+                alerts.push({
+                  id: `limit_up_${index}`,
+                  stockCode: code,
+                  stockName: name,
+                  board: board,
+                  alertType: 'limit_up',
+                  alertName: '涨停',
+                  alertIcon: '🔺',
+                  alertColor: '#ef4444',
+                  time: item.fbt || '00:00:00',
+                  timestamp: now.getTime(),
+                  price: price,
+                  changePercent: parseFloat(changePercent),
+                  volume: volume,
+                  amount: amount
+                });
+              });
+            }
+            res();
+          },
+          fail: () => res()
         });
-      }
+      });
 
-      alerts.sort((a, b) => b.timestamp - a.timestamp);
-      resolve(alerts);
+      const fetchLimitDown = new Promise((res) => {
+        const url = 'https://push2ex.eastmoney.com/getTopicDTPool?ut=7eea3edcaed734bea9cb3c4fac7a3b4b&dession=&date=' + now.getFullYear() + (now.getMonth() + 1).toString().padStart(2, '0') + now.getDate().toString().padStart(2, '0') + '&_=1';
+        wx.request({
+          url: url,
+          method: 'GET',
+          timeout: 10000,
+          success: (resp) => {
+            if (resp.statusCode === 200 && resp.data && resp.data.data && resp.data.data.pool) {
+              const pool = resp.data.data.pool || [];
+              pool.forEach((item, index) => {
+                const code = item.c || '';
+                const name = item.n || '';
+                const price = ((item.p || 0) / 100).toFixed(2);
+                const changePercent = ((item.zdp || 0) / 100).toFixed(2);
+                const amount = ((item.amount || 0) / 100000000).toFixed(2);
+                const volume = item.volume || 0;
+                let board = 'sh';
+                if (code.startsWith('0') || code.startsWith('002')) board = 'sz';
+                else if (code.startsWith('3')) board = 'cyb';
+                else if (code.startsWith('688')) board = 'kcb';
+                else if (code.startsWith('8') || code.startsWith('4')) board = 'bj';
+
+                alerts.push({
+                  id: `limit_down_${index}`,
+                  stockCode: code,
+                  stockName: name,
+                  board: board,
+                  alertType: 'limit_down',
+                  alertName: '跌停',
+                  alertIcon: '🔻',
+                  alertColor: '#10b981',
+                  time: item.fbt || '00:00:00',
+                  timestamp: now.getTime(),
+                  price: price,
+                  changePercent: parseFloat(changePercent),
+                  volume: volume,
+                  amount: amount
+                });
+              });
+            }
+            res();
+          },
+          fail: () => res()
+        });
+      });
+
+      const fetchBigChange = new Promise((res) => {
+        const url = 'https://push2.eastmoney.com/api/qt/clist/get?cb=&fid=f3&po=1&pz=20&pn=1&np=1&fltt=2&invt=2&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048&fields=f2,f3,f5,f6,f8,f12,f14,f15,f16,f17,f18';
+        wx.request({
+          url: url,
+          method: 'GET',
+          timeout: 10000,
+          success: (resp) => {
+            if (resp.statusCode === 200 && resp.data && resp.data.data && resp.data.data.diff) {
+              const records = resp.data.data.diff || [];
+              records.forEach((item, index) => {
+                const code = item.f12 || '';
+                const name = item.f14 || '';
+                const price = (item.f2 || 0);
+                const changePercent = (item.f3 || 0);
+                const amount = ((item.f6 || 0) / 100000000).toFixed(2);
+                const volume = item.f5 || 0;
+                const turnover = (item.f8 || 0);
+                let board = 'sh';
+                if (code.startsWith('0') || code.startsWith('002')) board = 'sz';
+                else if (code.startsWith('3')) board = 'cyb';
+                else if (code.startsWith('688')) board = 'kcb';
+                else if (code.startsWith('8') || code.startsWith('4')) board = 'bj';
+
+                let alertType = 'surge';
+                let alertName = '快速拉升';
+                let alertIcon = '🚀';
+                let alertColor = '#ef4444';
+
+                if (changePercent < -5) {
+                  alertType = 'plunge';
+                  alertName = '快速跳水';
+                  alertIcon = '📉';
+                  alertColor = '#10b981';
+                } else if (changePercent > 5) {
+                  alertType = 'surge';
+                  alertName = '快速拉升';
+                  alertIcon = '🚀';
+                  alertColor = '#ef4444';
+                } else if (turnover > 10) {
+                  alertType = 'volume';
+                  alertName = '量比异动';
+                  alertIcon = '📊';
+                  alertColor = '#8b5cf6';
+                }
+
+                if (Math.abs(changePercent) > 3) {
+                  alerts.push({
+                    id: `change_${index}`,
+                    stockCode: code,
+                    stockName: name,
+                    board: board,
+                    alertType: alertType,
+                    alertName: alertName,
+                    alertIcon: alertIcon,
+                    alertColor: alertColor,
+                    time: `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`,
+                    timestamp: now.getTime() - index * 1000,
+                    price: price.toFixed(2),
+                    changePercent: parseFloat(changePercent.toFixed(2)),
+                    volume: volume,
+                    amount: amount
+                  });
+                }
+              });
+            }
+            res();
+          },
+          fail: () => res()
+        });
+      });
+
+      Promise.all([fetchLimitUp, fetchLimitDown, fetchBigChange]).then(() => {
+        alerts.sort((a, b) => b.timestamp - a.timestamp);
+        resolve(alerts.slice(0, 50));
+      });
     });
   },
 
   fetchAbnormalStocks() {
-    return new Promise((resolve) => {
-      const stocks = [
-        { code: '300001', name: '特锐德', board: 'cyb' },
-        { code: '688001', name: '华兴源创', board: 'kcb' },
-        { code: '002001', name: '新和成', board: 'sz' },
-        { code: '600001', name: '邯郸钢铁', board: 'sh' },
-        { code: '300100', name: '双林股份', board: 'cyb' },
-        { code: '688111', name: '金山办公', board: 'kcb' },
-        { code: '000002', name: '万科A', board: 'sz' },
-        { code: '600030', name: '中信证券', board: 'sh' }
-      ];
-
+    return new Promise((resolve, reject) => {
       const abnormalList = [];
       const now = new Date();
 
-      stocks.forEach(stock => {
-        const periods = DEVIATION_PERIODS.filter(() => Math.random() > 0.5);
-        if (periods.length === 0) periods.push(DEVIATION_PERIODS[0]);
+      const fetchSt = new Promise((res) => {
+        const url = 'https://push2ex.eastmoney.com/getSTTopicPool?ut=7eea3edcaed734bea9cb3c4fac7a3b4b&date=' + now.getFullYear() + (now.getMonth() + 1).toString().padStart(2, '0') + now.getDate().toString().padStart(2, '0') + '&_=1';
+        wx.request({
+          url: url,
+          method: 'GET',
+          timeout: 10000,
+          success: (resp) => {
+            if (resp.statusCode === 200 && resp.data && resp.data.data && resp.data.data.pool) {
+              const pool = resp.data.data.pool || [];
+              pool.forEach((item, index) => {
+                const code = item.c || '';
+                const name = item.n || '';
+                const price = ((item.p || 0) / 100).toFixed(2);
+                const changePercent = ((item.zdp || 0) / 100).toFixed(2);
+                let board = 'sh';
+                if (code.startsWith('0') || code.startsWith('002')) board = 'sz';
+                else if (code.startsWith('3')) board = 'cyb';
+                else if (code.startsWith('688')) board = 'kcb';
+                else if (code.startsWith('8') || code.startsWith('4')) board = 'bj';
 
-        periods.forEach(period => {
-          const threshold = BOARD_THRESHOLDS[stock.board] || { normal: 20, severe: 50 };
-          const deviation = (Math.random() * 80 - 20).toFixed(2);
-          const absDeviation = Math.abs(parseFloat(deviation));
-          const isSevere = absDeviation >= threshold.severe;
-          const isNormal = absDeviation >= threshold.normal && !isSevere;
-
-          if (isNormal || isSevere) {
-            const price = (50 + Math.random() * 200).toFixed(2);
-            const changePercent = (Math.random() * 30 - 15).toFixed(2);
-            const triggerCount = Math.floor(Math.random() * 3) + 1;
-            const announcementStatus = Math.random() > 0.5 ? '已公告' : '待公告';
-
-            abnormalList.push({
-              id: `${stock.code}_${period.code}`,
-              stockCode: stock.code,
-              stockName: stock.name,
-              board: stock.board,
-              boardName: BOARD_TYPES.find(b => b.code === stock.board)?.name || '',
-              period: period.code,
-              periodName: period.name,
-              periodDays: period.days,
-              deviation: parseFloat(deviation),
-              absDeviation: absDeviation,
-              isSevere: isSevere,
-              isNormal: isNormal,
-              abnormalType: isSevere ? 'severe' : 'normal',
-              abnormalTypeName: isSevere ? '严重异常波动' : '异常波动',
-              price: price,
-              changePercent: parseFloat(changePercent),
-              triggerCount: triggerCount,
-              announcementStatus: announcementStatus,
-              triggerDate: `${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`
-            });
-          }
+                abnormalList.push({
+                  id: `st_${index}`,
+                  stockCode: code,
+                  stockName: name,
+                  board: board,
+                  boardName: BOARD_TYPES.find(b => b.code === board)?.name || '',
+                  period: '30d',
+                  periodName: '30日',
+                  periodDays: 30,
+                  deviation: parseFloat(changePercent),
+                  absDeviation: Math.abs(parseFloat(changePercent)),
+                  isSevere: Math.abs(parseFloat(changePercent)) > 50,
+                  isNormal: Math.abs(parseFloat(changePercent)) > 20 && Math.abs(parseFloat(changePercent)) <= 50,
+                  abnormalType: Math.abs(parseFloat(changePercent)) > 50 ? 'severe' : 'normal',
+                  abnormalTypeName: Math.abs(parseFloat(changePercent)) > 50 ? '严重异常波动' : '异常波动',
+                  price: price,
+                  changePercent: parseFloat(changePercent),
+                  triggerCount: 1,
+                  announcementStatus: '待公告',
+                  triggerDate: `${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`
+                });
+              });
+            }
+            res();
+          },
+          fail: () => res()
         });
       });
 
-      abnormalList.sort((a, b) => b.absDeviation - a.absDeviation);
-      resolve(abnormalList);
+      const fetchNewHigh = new Promise((res) => {
+        const url = 'https://push2.eastmoney.com/api/qt/clist/get?cb=&fid=f3&po=1&pz=15&pn=1&np=1&fltt=2&invt=2&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048&fields=f2,f3,f5,f6,f8,f12,f14,f15,f16,f17,f18';
+        wx.request({
+          url: url,
+          method: 'GET',
+          timeout: 10000,
+          success: (resp) => {
+            if (resp.statusCode === 200 && resp.data && resp.data.data && resp.data.data.diff) {
+              const records = resp.data.data.diff || [];
+              records.forEach((item, index) => {
+                const code = item.f12 || '';
+                const name = item.f14 || '';
+                const price = (item.f2 || 0);
+                const changePercent = (item.f3 || 0);
+                const high = (item.f15 || 0);
+                const low = (item.f16 || 0);
+                const turnover = (item.f8 || 0);
+                let board = 'sh';
+                if (code.startsWith('0') || code.startsWith('002')) board = 'sz';
+                else if (code.startsWith('3')) board = 'cyb';
+                else if (code.startsWith('688')) board = 'kcb';
+                else if (code.startsWith('8') || code.startsWith('4')) board = 'bj';
+
+                const threshold = BOARD_THRESHOLDS[board] || { normal: 20, severe: 50 };
+                const deviation = parseFloat(changePercent.toFixed(2));
+                const absDeviation = Math.abs(deviation);
+                const isSevere = absDeviation >= threshold.severe;
+                const isNormal = absDeviation >= threshold.normal && !isSevere;
+
+                if (isNormal || isSevere) {
+                  abnormalList.push({
+                    id: `abnormal_${index}`,
+                    stockCode: code,
+                    stockName: name,
+                    board: board,
+                    boardName: BOARD_TYPES.find(b => b.code === board)?.name || '',
+                    period: '5d',
+                    periodName: '5日',
+                    periodDays: 5,
+                    deviation: deviation,
+                    absDeviation: absDeviation,
+                    isSevere: isSevere,
+                    isNormal: isNormal,
+                    abnormalType: isSevere ? 'severe' : 'normal',
+                    abnormalTypeName: isSevere ? '严重异常波动' : '异常波动',
+                    price: price.toFixed(2),
+                    changePercent: parseFloat(changePercent.toFixed(2)),
+                    triggerCount: Math.ceil(turnover / 5),
+                    announcementStatus: isSevere ? '待公告' : '已公告',
+                    triggerDate: `${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`
+                  });
+                }
+              });
+            }
+            res();
+          },
+          fail: () => res()
+        });
+      });
+
+      Promise.all([fetchSt, fetchNewHigh]).then(() => {
+        abnormalList.sort((a, b) => b.absDeviation - a.absDeviation);
+        resolve(abnormalList.slice(0, 30));
+      });
     });
   },
 

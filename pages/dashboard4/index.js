@@ -21,46 +21,6 @@ const SORT_PERIODS = [
   { code: '3y', name: '3年', key: 'change3y' }
 ];
 
-const SECTOR_LIST = [
-  { code: '801010', name: '农林牧渔', icon: '🌾' },
-  { code: '801020', name: '采掘', icon: '⛏️' },
-  { code: '801030', name: '化工', icon: '🧪' },
-  { code: '801040', name: '钢铁', icon: '🔩' },
-  { code: '801050', name: '有色金属', icon: '🪙' },
-  { code: '801080', name: '电子', icon: '💻' },
-  { code: '801110', name: '家用电器', icon: '🏠' },
-  { code: '801120', name: '食品饮料', icon: '🍜' },
-  { code: '801130', name: '纺织服装', icon: '👔' },
-  { code: '801140', name: '轻工制造', icon: '📦' },
-  { code: '801150', name: '医药生物', icon: '💊' },
-  { code: '801160', name: '公用事业', icon: '⚡' },
-  { code: '801170', name: '交通运输', icon: '🚛' },
-  { code: '801180', name: '房地产', icon: '🏗️' },
-  { code: '801200', name: '商业贸易', icon: '🛒' },
-  { code: '801210', name: '休闲服务', icon: '✈️' },
-  { code: '801230', name: '综合', icon: '📊' },
-  { code: '801710', name: '建筑材料', icon: '🧱' },
-  { code: '801720', name: '建筑装饰', icon: '🏛️' },
-  { code: '801730', name: '电气设备', icon: '💡' },
-  { code: '801740', name: '国防军工', icon: '🚀' },
-  { code: '801750', name: '计算机', icon: '🖥️' },
-  { code: '801760', name: '传媒', icon: '📱' },
-  { code: '801770', name: '通信', icon: '📡' },
-  { code: '801780', name: '银行', icon: '🏦' },
-  { code: '801790', name: '非银金融', icon: '📈' },
-  { code: '801880', name: '汽车', icon: '🚗' },
-  { code: '801890', name: '机械设备', icon: '⚙️' }
-];
-
-const HOT_THEMES = [
-  { name: '人工智能', related: ['计算机', '电子', '通信', '传媒'] },
-  { name: '新能源', related: ['电气设备', '汽车', '化工'] },
-  { name: '半导体', related: ['电子', '计算机'] },
-  { name: '医药生物', related: ['医药生物'] },
-  { name: '消费复苏', related: ['食品饮料', '家用电器', '商业贸易', '休闲服务'] },
-  { name: '一带一路', related: ['建筑装饰', '交通运输', '机械设备'] }
-];
-
 Page({
   data: {
     lastUpdateTime: '--:--:--',
@@ -73,20 +33,20 @@ Page({
     activeTab: 'industry',
     tabs: [
       { key: 'industry', name: '行业资金' },
-      { key: 'theme', name: '热门板块' },
       { key: 'etf', name: 'ETF资金' },
       { key: 'fund', name: '基金监控' }
     ],
 
-    sortField: 'netFlow',
+    sortField: 'changePercent',
     sortOrder: 'desc',
 
     industryData: [],
     filteredIndustryData: [],
 
-    themeData: [],
-
     etfData: [],
+    filteredETFData: [],
+    etfSortField: 'changePercent',
+    etfSortOrder: 'desc',
 
     summary: {
       totalInflow: 0,
@@ -214,10 +174,9 @@ Page({
 
     Promise.all([
       this.fetchIndustryData(),
-      this.fetchThemeData(),
       this.fetchETFData()
     ])
-      .then(([industryData, themeData, etfData]) => {
+      .then(([industryData, etfData]) => {
         const now = new Date();
         const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
 
@@ -226,7 +185,6 @@ Page({
         this.setData({
           lastUpdateTime: timeStr,
           industryData: industryData,
-          themeData: themeData,
           etfData: etfData,
           summary: summary,
           isLoading: false,
@@ -235,6 +193,7 @@ Page({
         });
 
         this.applySort();
+        this.applyETFSort();
       })
       .catch((error) => {
         console.error('获取数据失败:', error);
@@ -247,96 +206,147 @@ Page({
   },
 
   fetchIndustryData() {
-    return new Promise((resolve) => {
-      const mockData = SECTOR_LIST.map(sector => {
-        const netFlow = (Math.random() * 200 - 100).toFixed(2);
-        const inflow = (Math.random() * 500 + 100).toFixed(2);
-        const outflow = (parseFloat(inflow) - parseFloat(netFlow)).toFixed(2);
-        const changePercent = (Math.random() * 6 - 3).toFixed(2);
-        const riseCount = Math.floor(Math.random() * 100) + 10;
-        const fallCount = Math.floor(Math.random() * 80) + 10;
+    return new Promise((resolve, reject) => {
+      const url = 'https://push2.eastmoney.com/api/qt/clist/get?cb=&fid=f3&po=1&pz=50&pn=1&np=1&fltt=2&invt=2&fs=m:90+t:2&fields=f2,f3,f8,f12,f14,f62,f104,f105,f106,f184,f66,f69,f72,f75,f78,f81,f84,f87,f124';
 
-        return {
-          ...sector,
-          netFlow: parseFloat(netFlow),
-          inflow: parseFloat(inflow),
-          outflow: parseFloat(outflow),
-          changePercent: parseFloat(changePercent),
-          riseCount: riseCount,
-          fallCount: fallCount,
-          totalCount: riseCount + fallCount,
-          riseRatio: (riseCount / (riseCount + fallCount) * 100).toFixed(1),
-          mainFlow: (Math.random() * 100 - 50).toFixed(2),
-          superLargeFlow: (Math.random() * 60 - 30).toFixed(2),
-          largeFlow: (Math.random() * 40 - 20).toFixed(2),
-          mediumFlow: (Math.random() * 30 - 15).toFixed(2),
-          smallFlow: (Math.random() * 20 - 10).toFixed(2)
-        };
+      wx.request({
+        url: url,
+        method: 'GET',
+        timeout: 15000,
+        success: (res) => {
+          if (res.statusCode !== 200 || !res.data) {
+            reject(new Error('请求失败'));
+            return;
+          }
+
+          try {
+            const data = res.data;
+            const records = data?.data?.diff || [];
+
+            const ICON_MAP = {
+              '农林牧渔': '🌾', '采掘': '⛏️', '化工': '🧪', '钢铁': '🔩',
+              '有色金属': '🪙', '电子': '💻', '家用电器': '🏠', '食品饮料': '🍜',
+              '纺织服装': '👔', '轻工制造': '📦', '医药生物': '💊', '公用事业': '⚡',
+              '交通运输': '🚛', '房地产': '🏗️', '商业贸易': '🛒', '休闲服务': '✈️',
+              '综合': '📊', '建筑材料': '🧱', '建筑装饰': '🏛️', '电气设备': '💡',
+              '国防军工': '🚀', '计算机': '🖥️', '传媒': '📱', '通信': '📡',
+              '银行': '🏦', '非银金融': '📈', '汽车': '🚗', '机械设备': '⚙️',
+              '煤炭': '🪨', '石油石化': '🛢️', '美容护理': '💅', '电力设备': '🔋',
+              '环保': '♻️', '社会服务': '🎓', '煤炭开采': '🪨'
+            };
+
+            const results = records.map((item, index) => {
+              const code = item.f12 || '';
+              const name = item.f14 || '';
+              const changePercent = (item.f3 || 0);
+              const turnoverRate = (item.f8 || 0);
+              const netFlow = (item.f62 || 0) / 100000000;
+              const riseCount = parseInt(item.f104) || 0;
+              const fallCount = parseInt(item.f105) || 0;
+              const totalCount = parseInt(item.f106) || (riseCount + fallCount);
+              const riseRatio = totalCount > 0 ? (riseCount / totalCount * 100).toFixed(1) : '0.0';
+              const mainFlow = ((item.f66 || 0) + (item.f69 || 0)) / 100000000;
+              const superLargeFlow = (item.f66 || 0) / 100000000;
+              const largeFlow = (item.f72 || 0) / 100000000;
+              const mediumFlow = (item.f78 || 0) / 100000000;
+              const smallFlow = (item.f84 || 0) / 100000000;
+
+              const icon = Object.keys(ICON_MAP).find(key => name.includes(key)) 
+                ? ICON_MAP[Object.keys(ICON_MAP).find(key => name.includes(key))]
+                : '📊';
+
+              return {
+                code: code,
+                name: name,
+                icon: icon,
+                rank: index + 1,
+                changePercent: parseFloat(changePercent.toFixed(2)),
+                turnoverRate: parseFloat(turnoverRate.toFixed(2)),
+                netFlow: parseFloat(netFlow.toFixed(2)),
+                inflow: parseFloat((netFlow > 0 ? netFlow : 0).toFixed(2)),
+                outflow: parseFloat((netFlow < 0 ? Math.abs(netFlow) : 0).toFixed(2)),
+                riseCount: riseCount,
+                fallCount: fallCount,
+                totalCount: totalCount,
+                riseRatio: riseRatio,
+                mainFlow: parseFloat(mainFlow.toFixed(2)),
+                superLargeFlow: parseFloat(superLargeFlow.toFixed(2)),
+                largeFlow: parseFloat(largeFlow.toFixed(2)),
+                mediumFlow: parseFloat(mediumFlow.toFixed(2)),
+                smallFlow: parseFloat(smallFlow.toFixed(2))
+              };
+            });
+
+            resolve(results);
+          } catch (e) {
+            console.error('行业资金数据解析失败:', e);
+            reject(e);
+          }
+        },
+        fail: (err) => {
+          console.error('行业资金数据请求失败:', err);
+          reject(err);
+        }
       });
-
-      resolve(mockData);
-    });
-  },
-
-  fetchThemeData() {
-    return new Promise((resolve) => {
-      const mockThemes = HOT_THEMES.map(theme => {
-        const changePercent = (Math.random() * 8 - 2).toFixed(2);
-        const netFlow = (Math.random() * 300 - 100).toFixed(2);
-        const riseCount = Math.floor(Math.random() * 50) + 10;
-        const fallCount = Math.floor(Math.random() * 30) + 5;
-        const leaderName = theme.related[0] || '';
-
-        return {
-          name: theme.name,
-          related: theme.related,
-          changePercent: parseFloat(changePercent),
-          netFlow: parseFloat(netFlow),
-          riseCount: riseCount,
-          fallCount: fallCount,
-          leaderName: leaderName,
-          leaderChange: (Math.random() * 10).toFixed(2),
-          hot: Math.random() > 0.5
-        };
-      });
-
-      resolve(mockThemes);
     });
   },
 
   fetchETFData() {
-    return new Promise((resolve) => {
-      const etfList = [
-        { code: '510300', name: '沪深300ETF', shortName: '300ETF' },
-        { code: '510050', name: '上证50ETF', shortName: '50ETF' },
-        { code: '510500', name: '中证500ETF', shortName: '500ETF' },
-        { code: '159915', name: '创业板ETF', shortName: '创业板' },
-        { code: '512880', name: '证券ETF', shortName: '证券' },
-        { code: '512010', name: '医药ETF', shortName: '医药' },
-        { code: '515790', name: '光伏ETF', shortName: '光伏' },
-        { code: '516160', name: '新能源ETF', shortName: '新能源' },
-        { code: '159941', name: '纳指ETF', shortName: '纳指' },
-        { code: '513100', name: '纳指100ETF', shortName: '纳指100' }
+    return new Promise((resolve, reject) => {
+      const etfSecIds = [
+        '1.510300', '1.510050', '1.510500', '0.159915', '1.512880', '1.512010',
+        '1.515790', '1.516160', '0.159941', '1.513100', '1.518880', '1.512000',
+        '1.510880', '0.159919', '0.159922', '0.159925', '0.159938', '0.159952',
+        '0.159956', '0.159957'
       ];
 
-      const mockETFs = etfList.map(etf => {
-        const changePercent = (Math.random() * 4 - 2).toFixed(2);
-        const netFlow = (Math.random() * 50 - 25).toFixed(2);
-        const volume = (Math.random() * 100 + 10).toFixed(2);
-        const amount = (Math.random() * 1000 + 100).toFixed(2);
+      const promises = etfSecIds.map(secid => {
+        return new Promise((res) => {
+          const url = `https://push2.eastmoney.com/api/qt/stock/get?secid=${secid}&fields=f57,f58,f43,f169,f170,f46,f44,f51,f168,f47,f164,f116,f117`;
+          wx.request({
+            url: url,
+            method: 'GET',
+            timeout: 10000,
+            success: (resp) => {
+              if (resp.statusCode === 200 && resp.data && resp.data.rc === 0 && resp.data.data) {
+                const d = resp.data.data;
+                const code = d.f57 || '';
+                const name = d.f58 || '';
+                const price = (d.f43 || 0) / 1000;
+                const prevClose = (d.f46 || 0) / 1000;
+                const changePercent = (d.f170 || 0) / 100;
+                const amount = (d.f47 || 0) / 100000000;
+                const volume = (d.f44 || 0);
+                const netFlow = (d.f116 || 0) / 100000000;
+                const turnoverRate = (d.f168 || 0) / 100;
 
-        return {
-          ...etf,
-          changePercent: parseFloat(changePercent),
-          netFlow: parseFloat(netFlow),
-          volume: parseFloat(volume),
-          amount: parseFloat(amount),
-          premium: (Math.random() * 2 - 1).toFixed(3),
-          sharesChange: (Math.random() * 10 - 5).toFixed(2)
-        };
+                res({
+                  code: code,
+                  name: name,
+                  shortName: name.replace('ETF', '').replace('LOF', ''),
+                  price: price.toFixed(3),
+                  changePercent: parseFloat(changePercent.toFixed(2)),
+                  netFlow: parseFloat(netFlow.toFixed(2)),
+                  volume: volume,
+                  amount: parseFloat(amount.toFixed(2)),
+                  turnoverRate: parseFloat(turnoverRate.toFixed(2)),
+                  premium: '0.000'
+                });
+              } else {
+                res(null);
+              }
+            },
+            fail: () => {
+              res(null);
+            }
+          });
+        });
       });
 
-      resolve(mockETFs);
+      Promise.all(promises).then(results => {
+        const validResults = results.filter(item => item !== null);
+        resolve(validResults.length > 0 ? validResults : []);
+      });
     });
   },
 
@@ -408,6 +418,36 @@ Page({
     this.setData({ filteredIndustryData: sorted });
   },
 
+  setETFSortField(e) {
+    const field = e.currentTarget.dataset.field;
+    const { etfSortField, etfSortOrder } = this.data;
+
+    let newOrder = 'desc';
+    if (etfSortField === field) {
+      newOrder = etfSortOrder === 'desc' ? 'asc' : 'desc';
+    }
+
+    this.setData({
+      etfSortField: field,
+      etfSortOrder: newOrder
+    });
+
+    this.applyETFSort();
+  },
+
+  applyETFSort() {
+    const { etfData, etfSortField, etfSortOrder } = this.data;
+
+    const sorted = [...etfData].sort((a, b) => {
+      const valueA = parseFloat(a[etfSortField]) || 0;
+      const valueB = parseFloat(b[etfSortField]) || 0;
+
+      return etfSortOrder === 'desc' ? valueB - valueA : valueA - valueB;
+    });
+
+    this.setData({ filteredETFData: sorted });
+  },
+
   setRefreshInterval(e) {
     const interval = parseInt(e.currentTarget.dataset.interval) || 30000;
     this.setData({ refreshInterval: interval });
@@ -457,99 +497,106 @@ Page({
     if (this.data.isLoading) return;
     this.setData({ isLoading: true, error: null });
 
-    const mockFunds = this.generateMockFunds();
+    const url = 'https://fund.eastmoney.com/data/rankhandler.aspx?op=ph&dt=kf&ft=all&rs=&gs=0&sc=1nzf&st=desc&pi=1&pn=50&dx=1';
 
-    setTimeout(() => {
-      const now = new Date();
-      const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+    wx.request({
+      url: url,
+      method: 'GET',
+      header: {
+        'Referer': 'https://fund.eastmoney.com/data/fundranking.html'
+      },
+      responseType: 'text',
+      timeout: 15000,
+      success: (res) => {
+        if (res.statusCode !== 200 || !res.data) {
+          this.setData({
+            error: '基金排行数据获取失败',
+            isLoading: false,
+            isRefreshing: false
+          });
+          return;
+        }
 
-      this.setData({
-        lastUpdateTime: timeStr,
-        rankingList: mockFunds,
-        isLoading: false,
-        isRefreshing: false,
-        error: null
-      });
+        try {
+          const data = typeof res.data === 'string' ? res.data : String(res.data);
+          const match = data.match(/var rankData = (\{.*?\});/s);
 
-      this.applyRankingFilter();
-    }, 500);
-  },
+          if (match && match[1]) {
+            const rankData = JSON.parse(match[1]);
+            const records = rankData.datas || [];
 
-  generateMockFunds() {
-    const fundNames = [
-      { code: '000001', name: '华夏成长混合', type: 'mixed' },
-      { code: '000002', name: '易方达消费行业', type: 'stock' },
-      { code: '000003', name: '中欧行业成长', type: 'mixed' },
-      { code: '000004', name: '富国天惠成长', type: 'mixed' },
-      { code: '000005', name: '景顺长城新兴成长', type: 'stock' },
-      { code: '000006', name: '招商中证白酒', type: 'index' },
-      { code: '000007', name: '国泰中证全指证券', type: 'index' },
-      { code: '000008', name: '华夏沪深300ETF联接', type: 'index' },
-      { code: '000009', name: '南方中证500ETF联接', type: 'index' },
-      { code: '000010', name: '易方达中短期债券', type: 'bond' },
-      { code: '000011', name: '广发纳斯达克100', type: 'qdii' },
-      { code: '000012', name: '博时标普500ETF联接', type: 'qdii' },
-      { code: '000013', name: '工银瑞信前沿医疗', type: 'stock' },
-      { code: '000014', name: '汇添富中证新能源汽车', type: 'index' },
-      { code: '000015', name: '华夏芯片ETF', type: 'index' },
-      { code: '000016', name: '天弘中证光伏产业', type: 'index' },
-      { code: '000017', name: '鹏华中证国防', type: 'index' },
-      { code: '000018', name: '华安创业板50ETF联接', type: 'index' },
-      { code: '000019', name: '富国中证医药主题', type: 'index' },
-      { code: '000020', name: '易方达上证50', type: 'index' },
-      { code: '000021', name: '嘉实基本面50', type: 'index' },
-      { code: '000022', name: '南方成份精选', type: 'mixed' },
-      { code: '000023', name: '中银持续增长', type: 'mixed' },
-      { code: '000024', name: '大摩资源优选', type: 'mixed' },
-      { code: '000025', name: '建信核心精选', type: 'mixed' },
-      { code: '000026', name: '泰达宏利成长', type: 'stock' },
-      { code: '000027', name: '融通深证100', type: 'index' },
-      { code: '000028', name: '天治核心成长', type: 'stock' },
-      { code: '000029', name: '万家精选', type: 'mixed' },
-      { code: '000030', name: '长城品牌优选', type: 'stock' },
-      { code: '000031', name: '华夏回报', type: 'mixed' },
-      { code: '000032', name: '易方达价值精选', type: 'mixed' },
-      { code: '000033', name: '嘉实增长', type: 'mixed' },
-      { code: '000034', name: '富国天益价值', type: 'mixed' },
-      { code: '000035', name: '博时主题行业', type: 'mixed' },
-      { code: '000036', name: '华安创新', type: 'mixed' },
-      { code: '000037', name: '广发聚丰', type: 'mixed' },
-      { code: '000038', name: '南方稳健成长', type: 'mixed' },
-      { code: '000039', name: '鹏华价值优势', type: 'mixed' },
-      { code: '000040', name: '工银瑞信核心价值', type: 'mixed' },
-      { code: '000041', name: '汇添富优势精选', type: 'mixed' },
-      { code: '000042', name: '华夏红利', type: 'mixed' },
-      { code: '000043', name: '易方达策略成长', type: 'mixed' },
-      { code: '000044', name: '嘉实服务增值', type: 'mixed' },
-      { code: '000045', name: '富国天瑞强势', type: 'mixed' },
-      { code: '000046', name: '博时精选', type: 'mixed' },
-      { code: '000047', name: '华安宝利配置', type: 'mixed' },
-      { code: '000048', name: '广发策略优选', type: 'mixed' },
-      { code: '000049', name: '南方积极配置', type: 'mixed' },
-      { code: '000050', name: '鹏华中国50', type: 'index' }
-    ];
+            const results = records.map((item, index) => {
+              const parts = item.split(',');
+              const code = parts[0] || '';
+              const name = parts[1] || '';
+              const todayChange = parseFloat(parts[4]) || 0;
+              const change1w = parseFloat(parts[10]) || 0;
+              const change1m = parseFloat(parts[11]) || 0;
+              const change3m = parseFloat(parts[12]) || 0;
+              const change6m = parseFloat(parts[13]) || 0;
+              const change1y = parseFloat(parts[14]) || 0;
+              const change2y = parseFloat(parts[15]) || 0;
+              const change3y = parseFloat(parts[16]) || 0;
+              const scale = parseFloat(parts[19]) || 0;
 
-    return fundNames.map((fund, index) => {
-      const todayChange = (Math.random() * 10 - 3).toFixed(2);
-      const change3d = (Math.random() * 15 - 5).toFixed(2);
-      const change1w = (Math.random() * 20 - 8).toFixed(2);
-      const change1m = (Math.random() * 30 - 10).toFixed(2);
-      const change1y = (Math.random() * 80 - 20).toFixed(2);
-      const change3y = (Math.random() * 150 - 30).toFixed(2);
-      const scale = (Math.random() * 200 + 10).toFixed(2);
+              let type = 'mixed';
+              if (name.includes('指数') || name.includes('ETF')) type = 'index';
+              else if (name.includes('债') || name.includes('纯债')) type = 'bond';
+              else if (name.includes('QDII') || name.includes('纳指') || name.includes('标普')) type = 'qdii';
+              else if (name.includes('股票') || name.includes('成长') || name.includes('价值')) type = 'stock';
 
-      return {
-        ...fund,
-        rank: index + 1,
-        todayChange: parseFloat(todayChange),
-        change3d: parseFloat(change3d),
-        change1w: parseFloat(change1w),
-        change1m: parseFloat(change1m),
-        change1y: parseFloat(change1y),
-        change3y: parseFloat(change3y),
-        scale: parseFloat(scale),
-        typeName: FUND_TYPES.find(t => t.code === fund.type)?.name || ''
-      };
+              return {
+                code: code,
+                name: name,
+                type: type,
+                rank: index + 1,
+                todayChange: todayChange,
+                change3d: change1w / 5,
+                change1w: change1w,
+                change1m: change1m,
+                change1y: change1y,
+                change3y: change3y,
+                scale: scale,
+                typeName: FUND_TYPES.find(t => t.code === type)?.name || ''
+              };
+            });
+
+            const now = new Date();
+            const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+
+            this.setData({
+              lastUpdateTime: timeStr,
+              rankingList: results,
+              isLoading: false,
+              isRefreshing: false,
+              error: null
+            });
+
+            this.applyRankingFilter();
+          } else {
+            this.setData({
+              error: '基金排行数据解析失败',
+              isLoading: false,
+              isRefreshing: false
+            });
+          }
+        } catch (e) {
+          console.error('基金排行数据解析失败:', e);
+          this.setData({
+            error: '基金排行数据解析失败',
+            isLoading: false,
+            isRefreshing: false
+          });
+        }
+      },
+      fail: (err) => {
+        console.error('基金排行数据请求失败:', err);
+        this.setData({
+          error: '基金排行数据请求失败',
+          isLoading: false,
+          isRefreshing: false
+        });
+      }
     });
   },
 
@@ -633,26 +680,18 @@ Page({
     }, 1000);
 
     setTimeout(() => {
-      const mockOCRResult = this.generateMockOCRResult();
+      wx.showToast({
+        title: 'OCR功能需要后端服务支持',
+        icon: 'none',
+        duration: 2000
+      });
       this.setData({
         ocrProgress: 100,
-        ocrResult: mockOCRResult
+        showOCR: false,
+        ocrResult: null,
+        ocrImage: ''
       });
     }, 1500);
-  },
-
-  generateMockOCRResult() {
-    const mockFunds = [
-      { code: '000001', name: '华夏成长混合', shares: '1000.00', costNav: '1.5000', marketValue: '1725.00', profit: '225.00', profitRate: '15.00' },
-      { code: '000002', name: '易方达消费行业', shares: '500.00', costNav: '3.2000', marketValue: '1750.00', profit: '150.00', profitRate: '9.38' },
-      { code: '000006', name: '招商中证白酒', shares: '2000.00', costNav: '1.8000', marketValue: '4000.00', profit: '400.00', profitRate: '11.11' }
-    ];
-
-    return {
-      funds: mockFunds,
-      totalAssets: mockFunds.reduce((sum, f) => sum + parseFloat(f.marketValue), 0).toFixed(2),
-      totalProfit: mockFunds.reduce((sum, f) => sum + parseFloat(f.profit), 0).toFixed(2)
-    };
   },
 
   confirmOCRResult() {
@@ -728,40 +767,100 @@ Page({
 
     const shares = parseFloat(newFund.shares);
     const costNav = parseFloat(newFund.costNav);
-    const marketValue = shares * costNav * (1 + Math.random() * 0.2);
-    const profit = marketValue - shares * costNav;
-    const profitRate = (profit / (shares * costNav) * 100);
 
-    const fund = {
-      code: newFund.code,
-      name: newFund.name,
-      shares: shares,
-      costNav: costNav,
-      currentNav: (costNav * (1 + profitRate / 100)).toFixed(4),
-      marketValue: marketValue.toFixed(2),
-      profit: profit.toFixed(2),
-      profitRate: profitRate.toFixed(2),
-      updateDate: new Date().toISOString().split('T')[0]
-    };
+    const url = `https://fundgz.1702.com/js/${newFund.code}.js`;
+    wx.request({
+      url: url,
+      method: 'GET',
+      responseType: 'text',
+      timeout: 10000,
+      success: (res) => {
+        let currentNav = costNav;
+        if (res.statusCode === 200 && res.data) {
+          try {
+            const data = typeof res.data === 'string' ? res.data : String(res.data);
+            const match = data.match(/jsonpgz\((.*)\)/);
+            if (match && match[1]) {
+              const navData = JSON.parse(match[1]);
+              currentNav = parseFloat(navData.gsz) || costNav;
+            }
+          } catch (e) {
+            console.error('获取基金净值失败:', e);
+          }
+        }
 
-    const updatedFunds = [...portfolio.funds, fund];
-    const totalAssets = updatedFunds.reduce((sum, f) => sum + parseFloat(f.marketValue), 0);
-    const totalProfit = updatedFunds.reduce((sum, f) => sum + parseFloat(f.profit), 0);
+        const marketValue = shares * currentNav;
+        const profit = marketValue - shares * costNav;
+        const profitRate = (profit / (shares * costNav) * 100);
 
-    const updatedPortfolio = {
-      funds: updatedFunds,
-      totalAssets: totalAssets.toFixed(2),
-      totalProfit: totalProfit.toFixed(2),
-      totalProfitRate: totalAssets > 0 ? (totalProfit / (totalAssets - totalProfit) * 100).toFixed(2) : '0.00'
-    };
+        const fund = {
+          code: newFund.code,
+          name: newFund.name,
+          shares: shares,
+          costNav: costNav,
+          currentNav: currentNav.toFixed(4),
+          marketValue: marketValue.toFixed(2),
+          profit: profit.toFixed(2),
+          profitRate: profitRate.toFixed(2),
+          updateDate: new Date().toISOString().split('T')[0]
+        };
 
-    this.setData({
-      portfolio: updatedPortfolio,
-      showAddFund: false
+        const updatedFunds = [...portfolio.funds, fund];
+        const totalAssets = updatedFunds.reduce((sum, f) => sum + parseFloat(f.marketValue), 0);
+        const totalProfit = updatedFunds.reduce((sum, f) => sum + parseFloat(f.profit), 0);
+
+        const updatedPortfolio = {
+          funds: updatedFunds,
+          totalAssets: totalAssets.toFixed(2),
+          totalProfit: totalProfit.toFixed(2),
+          totalProfitRate: totalAssets > 0 ? (totalProfit / (totalAssets - totalProfit) * 100).toFixed(2) : '0.00'
+        };
+
+        this.setData({
+          portfolio: updatedPortfolio,
+          showAddFund: false
+        });
+
+        this.savePortfolio();
+        wx.showToast({ title: '添加成功', icon: 'success' });
+      },
+      fail: () => {
+        const marketValue = shares * costNav;
+        const profit = 0;
+        const profitRate = 0;
+
+        const fund = {
+          code: newFund.code,
+          name: newFund.name,
+          shares: shares,
+          costNav: costNav,
+          currentNav: costNav.toFixed(4),
+          marketValue: marketValue.toFixed(2),
+          profit: profit.toFixed(2),
+          profitRate: profitRate.toFixed(2),
+          updateDate: new Date().toISOString().split('T')[0]
+        };
+
+        const updatedFunds = [...portfolio.funds, fund];
+        const totalAssets = updatedFunds.reduce((sum, f) => sum + parseFloat(f.marketValue), 0);
+        const totalProfit = updatedFunds.reduce((sum, f) => sum + parseFloat(f.profit), 0);
+
+        const updatedPortfolio = {
+          funds: updatedFunds,
+          totalAssets: totalAssets.toFixed(2),
+          totalProfit: totalProfit.toFixed(2),
+          totalProfitRate: totalAssets > 0 ? (totalProfit / (totalAssets - totalProfit) * 100).toFixed(2) : '0.00'
+        };
+
+        this.setData({
+          portfolio: updatedPortfolio,
+          showAddFund: false
+        });
+
+        this.savePortfolio();
+        wx.showToast({ title: '添加成功（净值获取失败）', icon: 'none' });
+      }
     });
-
-    this.savePortfolio();
-    wx.showToast({ title: '添加成功', icon: 'success' });
   },
 
   deleteFund(e) {
@@ -796,32 +895,60 @@ Page({
     const { portfolio } = this.data;
     if (!portfolio.funds || portfolio.funds.length === 0) return;
 
-    const updatedFunds = portfolio.funds.map(fund => {
-      const change = (Math.random() * 0.04 - 0.02);
-      const currentNav = fund.costNav * (1 + parseFloat(fund.profitRate) / 100 + change);
-      const marketValue = fund.shares * currentNav;
-      const profit = marketValue - fund.shares * fund.costNav;
-      const profitRate = (profit / (fund.shares * fund.costNav) * 100);
+    const promises = portfolio.funds.map(fund => {
+      return new Promise((resolve) => {
+        const url = `https://fundgz.1702.com/js/${fund.code}.js`;
+        wx.request({
+          url: url,
+          method: 'GET',
+          responseType: 'text',
+          timeout: 10000,
+          success: (res) => {
+            if (res.statusCode === 200 && res.data) {
+              try {
+                const data = typeof res.data === 'string' ? res.data : String(res.data);
+                const match = data.match(/jsonpgz\((.*)\)/);
+                if (match && match[1]) {
+                  const navData = JSON.parse(match[1]);
+                  const currentNav = parseFloat(navData.gsz) || fund.costNav;
+                  const marketValue = fund.shares * currentNav;
+                  const profit = marketValue - fund.shares * fund.costNav;
+                  const profitRate = (profit / (fund.shares * fund.costNav) * 100);
 
-      return {
-        ...fund,
-        currentNav: currentNav.toFixed(4),
-        marketValue: marketValue.toFixed(2),
-        profit: profit.toFixed(2),
-        profitRate: profitRate.toFixed(2)
-      };
+                  resolve({
+                    ...fund,
+                    currentNav: currentNav.toFixed(4),
+                    marketValue: marketValue.toFixed(2),
+                    profit: profit.toFixed(2),
+                    profitRate: profitRate.toFixed(2)
+                  });
+                  return;
+                }
+              } catch (e) {
+                console.error('基金净值解析失败:', fund.code, e);
+              }
+            }
+            resolve(fund);
+          },
+          fail: () => {
+            resolve(fund);
+          }
+        });
+      });
     });
 
-    const totalAssets = updatedFunds.reduce((sum, f) => sum + parseFloat(f.marketValue), 0);
-    const totalProfit = updatedFunds.reduce((sum, f) => sum + parseFloat(f.profit), 0);
+    Promise.all(promises).then(updatedFunds => {
+      const totalAssets = updatedFunds.reduce((sum, f) => sum + parseFloat(f.marketValue), 0);
+      const totalProfit = updatedFunds.reduce((sum, f) => sum + parseFloat(f.profit), 0);
 
-    this.setData({
-      portfolio: {
-        funds: updatedFunds,
-        totalAssets: totalAssets.toFixed(2),
-        totalProfit: totalProfit.toFixed(2),
-        totalProfitRate: totalAssets > 0 ? (totalProfit / (totalAssets - totalProfit) * 100).toFixed(2) : '0.00'
-      }
+      this.setData({
+        portfolio: {
+          funds: updatedFunds,
+          totalAssets: totalAssets.toFixed(2),
+          totalProfit: totalProfit.toFixed(2),
+          totalProfitRate: totalAssets > 0 ? (totalProfit / (totalAssets - totalProfit) * 100).toFixed(2) : '0.00'
+        }
+      });
     });
   }
 });

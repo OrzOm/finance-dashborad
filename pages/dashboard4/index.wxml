@@ -64,9 +64,6 @@
     <view class="tab-item {{activeTab === 'industry' ? 'active' : ''}}" data-tab="industry" bindtap="switchTab">
       <text>行业资金</text>
     </view>
-    <view class="tab-item {{activeTab === 'theme' ? 'active' : ''}}" data-tab="theme" bindtap="switchTab">
-      <text>热门板块</text>
-    </view>
     <view class="tab-item {{activeTab === 'etf' ? 'active' : ''}}" data-tab="etf" bindtap="switchTab">
       <text>ETF资金</text>
     </view>
@@ -134,72 +131,44 @@
       </view>
     </view>
 
-    <view class="theme-panel" wx:if="{{activeTab === 'theme'}}">
-      <view class="theme-list">
-        <view class="theme-item" wx:for="{{themeData}}" wx:key="name">
-          <view class="theme-header">
-            <view class="theme-name-box">
-              <text class="theme-name">{{item.name}}</text>
-              <view class="theme-hot" wx:if="{{item.hot}}">
-                <text>🔥</text>
-              </view>
-            </view>
-            <view class="theme-change {{item.changePercent >= 0 ? 'up' : 'down'}}">
-              <text>{{item.changePercent >= 0 ? '+' : ''}}{{item.changePercent}}%</text>
-            </view>
-          </view>
-          <view class="theme-body">
-            <view class="theme-flow">
-              <text class="flow-label">净流入:</text>
-              <text class="flow-value {{item.netFlow >= 0 ? 'up' : 'down'}}">
-                {{item.netFlow >= 0 ? '+' : ''}}{{item.netFlow}}亿
-              </text>
-            </view>
-            <view class="theme-stats">
-              <view class="stat-item">
-                <text class="stat-label">上涨</text>
-                <text class="stat-value up">{{item.riseCount}}</text>
-              </view>
-              <view class="stat-item">
-                <text class="stat-label">下跌</text>
-                <text class="stat-value down">{{item.fallCount}}</text>
-              </view>
-            </view>
-            <view class="theme-related">
-              <text class="related-label">关联行业:</text>
-              <view class="related-tags">
-                <text class="related-tag" wx:for="{{item.related}}" wx:for-item="rel" wx:key="*this">{{rel}}</text>
-              </view>
-            </view>
-          </view>
-        </view>
-      </view>
-    </view>
-
     <view class="etf-panel" wx:if="{{activeTab === 'etf'}}">
       <view class="etf-list">
+        <view class="etf-sort-bar">
+          <text class="etf-sort-label">排序:</text>
+          <view class="etf-sort-btn {{etfSortField === 'changePercent' ? 'active' : ''}}" data-field="changePercent" bindtap="setETFSortField">
+            <text>涨跌幅</text>
+            <text wx:if="{{etfSortField === 'changePercent'}}">{{etfSortOrder === 'desc' ? '↓' : '↑'}}</text>
+          </view>
+          <view class="etf-sort-btn {{etfSortField === 'netFlow' ? 'active' : ''}}" data-field="netFlow" bindtap="setETFSortField">
+            <text>净流入</text>
+            <text wx:if="{{etfSortField === 'netFlow'}}">{{etfSortOrder === 'desc' ? '↓' : '↑'}}</text>
+          </view>
+        </view>
         <view class="etf-header">
           <view class="etf-th" style="width: 200rpx;">名称</view>
+          <view class="etf-th" style="width: 100rpx;">现价</view>
           <view class="etf-th" style="width: 120rpx;">涨跌幅</view>
-          <view class="etf-th" style="width: 140rpx;">净流入(亿)</view>
-          <view class="etf-th" style="width: 120rpx;">成交额(亿)</view>
-          <view class="etf-th" style="width: 100rpx;">溢折价</view>
+          <view class="etf-th" style="width: 130rpx;">净流入(亿)</view>
+          <view class="etf-th" style="width: 110rpx;">成交额(亿)</view>
         </view>
-        <view class="etf-row" wx:for="{{etfData}}" wx:key="code">
+        <view class="etf-row" wx:for="{{filteredETFData}}" wx:key="code">
           <view class="etf-td" style="width: 200rpx;">
-            <text class="etf-name">{{item.shortName}}</text>
+            <view class="etf-info">
+              <text class="etf-name">{{item.shortName}}</text>
+              <text class="etf-code">{{item.code}}</text>
+            </view>
+          </view>
+          <view class="etf-td" style="width: 100rpx;">
+            {{item.price}}
           </view>
           <view class="etf-td {{item.changePercent >= 0 ? 'up' : 'down'}}" style="width: 120rpx;">
             {{item.changePercent >= 0 ? '+' : ''}}{{item.changePercent}}%
           </view>
-          <view class="etf-td {{item.netFlow >= 0 ? 'up' : 'down'}}" style="width: 140rpx;">
+          <view class="etf-td {{item.netFlow >= 0 ? 'up' : 'down'}}" style="width: 130rpx;">
             {{item.netFlow >= 0 ? '+' : ''}}{{item.netFlow}}
           </view>
-          <view class="etf-td" style="width: 120rpx;">
+          <view class="etf-td" style="width: 110rpx;">
             {{item.amount}}
-          </view>
-          <view class="etf-td {{item.premium >= 0 ? 'up' : 'down'}}" style="width: 100rpx;">
-            {{item.premium >= 0 ? '+' : ''}}{{item.premium}}%
           </view>
         </view>
       </view>

@@ -486,7 +486,35 @@
   background: #fff;
   border-radius: 16rpx;
   box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
-  overflow-x: auto;
+}
+
+.etf-sort-bar {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 16rpx;
+  border-bottom: 1rpx solid #f3f4f6;
+}
+
+.etf-sort-label {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.etf-sort-btn {
+  padding: 10rpx 20rpx;
+  background: #f5f7fa;
+  border-radius: 8rpx;
+  font-size: 22rpx;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.etf-sort-btn.active {
+  background: #eff6ff;
+  color: #2563eb;
 }
 
 .etf-header {
@@ -496,7 +524,7 @@
 }
 
 .etf-th {
-  padding: 20rpx 16rpx;
+  padding: 20rpx 12rpx;
   font-size: 22rpx;
   color: #666;
   font-weight: 600;
@@ -514,15 +542,35 @@
 }
 
 .etf-td {
-  padding: 20rpx 16rpx;
+  padding: 16rpx 12rpx;
   font-size: 24rpx;
   text-align: center;
   color: #1a1a2e;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.etf-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2rpx;
+  overflow: hidden;
 }
 
 .etf-name {
   font-weight: 600;
+  font-size: 22rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.etf-code {
+  font-size: 18rpx;
+  color: #999;
 }
 
 .etf-td.up {

@@ -171,7 +171,7 @@ Page({
       const stocks = [];
 
       const fetchGainers = new Promise((res) => {
-        const url = 'https://push2.eastmoney.com/api/qt/clist/get?cb=&fid=f3&po=1&pz=100&pn=1&np=1&fltt=2&invt=2&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048&fields=f2,f3,f4,f5,f6,f7,f8,f12,f14,f15,f16,f17,f18,f51';
+        const url = 'https://push2.eastmoney.com/api/qt/clist/get?cb=&fid=f3&po=1&pz=100&pn=1&np=1&fltt=2&invt=2&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048&fields=f2,f3,f4,f5,f6,f7,f8,f9,f10,f12,f14,f15,f16,f17,f18,f51';
         wx.request({
           url: url,
           method: 'GET',
@@ -189,6 +189,12 @@ Page({
                 const amount = (item.f6 || 0);
                 const amplitude = (item.f7 || 0);
                 const turnover = (item.f8 || 0);
+                const pe = (item.f9 || 0);
+                const volumeRatio = (item.f10 || 0);
+                const high = (item.f15 || 0);
+                const low = (item.f16 || 0);
+                const open = (item.f17 || 0);
+                const prevClose = (item.f18 || 0);
                 const limitPrice = (item.f51 || 0);
                 const board = getBoard(code);
                 const limitUp = limitPrice > 0 && price > 0 && price >= limitPrice;
@@ -205,10 +211,15 @@ Page({
                   price: price.toFixed(2),
                   changePercent: parseFloat(changePercent.toFixed(2)),
                   changeAmount: parseFloat(changeAmount.toFixed(2)),
-                  volume: volume,
                   amount: (amount / 100000000).toFixed(2),
                   amplitude: parseFloat(amplitude.toFixed(2)),
-                  turnover: parseFloat(turnover.toFixed(2))
+                  turnover: parseFloat(turnover.toFixed(2)),
+                  pe: pe ? parseFloat(pe.toFixed(2)) : '--',
+                  volumeRatio: volumeRatio ? parseFloat(volumeRatio.toFixed(2)) : '--',
+                  high: high ? high.toFixed(2) : '--',
+                  low: low ? low.toFixed(2) : '--',
+                  open: open ? open.toFixed(2) : '--',
+                  prevClose: prevClose ? prevClose.toFixed(2) : '--'
                 });
               });
             }
@@ -240,7 +251,7 @@ Page({
               const records = resp.data.result.data || [];
               records.forEach((item, index) => {
                 const code = item.SECURITY_CODE || '';
-                const name = item.SECURITY_NAME || '';
+                const name = item.SECURITY_NAME_ABBR || item.SECURITY_NAME || '';
                 const reason = item.EXPLANATION || '异常波动';
                 const closePrice = item.CLOSE_PRICE || 0;
                 const changeRate = item.CHANGE_RATE || 0;

@@ -73,43 +73,55 @@
       </view>
 
       <view class="stock-list">
-        <view class="stock-item" wx:for="{{filteredGainers}}" wx:key="id">
-          <view class="stock-content">
-            <view class="stock-header">
-              <view class="stock-info">
-                <text class="stock-rank">{{item.rank}}</text>
-                <text class="stock-name">{{item.stockName}}</text>
-                <text class="stock-code">{{item.stockCode}}</text>
-                <text class="board-tag">{{item.boardName}}</text>
+        <view class="stock-card" wx:for="{{filteredGainers}}" wx:key="id">
+          <view class="card-top">
+            <view class="card-left">
+              <view class="rank-badge {{item.rank <= 3 ? 'top' : ''}}">
+                <text>{{item.rank}}</text>
               </view>
-              <view class="limit-badge" wx:if="{{item.isLimitUp}}">
-                <text>涨停 {{item.limitPrice}}</text>
+              <view class="stock-main">
+                <view class="stock-name-row">
+                  <text class="stock-name">{{item.stockName}}</text>
+                  <text class="stock-code">{{item.stockCode}}</text>
+                  <text class="board-tag {{item.board}}">{{item.boardName}}</text>
+                </view>
+                <view class="stock-price-row">
+                  <text class="price {{item.changePercent >= 0 ? 'up' : 'down'}}">{{item.price}}</text>
+                  <view class="change-badge {{item.changePercent >= 0 ? 'up' : 'down'}}">
+                    <text>{{item.changePercent >= 0 ? '+' : ''}}{{item.changePercent}}%</text>
+                    <text class="change-amount-sm">{{item.changeAmount >= 0 ? '+' : ''}}{{item.changeAmount}}</text>
+                  </view>
+                </view>
               </view>
             </view>
-            <view class="stock-body">
-              <view class="price-info">
-                <text class="price">{{item.price}}</text>
-                <text class="change {{item.changePercent >= 0 ? 'up' : 'down'}}">
-                  {{item.changePercent >= 0 ? '+' : ''}}{{item.changePercent}}%
-                </text>
-                <text class="change-amount {{item.changeAmount >= 0 ? 'up' : 'down'}}">
-                  {{item.changeAmount >= 0 ? '+' : ''}}{{item.changeAmount}}
-                </text>
-              </view>
-              <view class="stock-metrics">
-                <view class="metric-item">
-                  <text class="metric-label">成交额</text>
-                  <text class="metric-value">{{item.amount}}亿</text>
-                </view>
-                <view class="metric-item">
-                  <text class="metric-label">换手率</text>
-                  <text class="metric-value">{{item.turnover}}%</text>
-                </view>
-                <view class="metric-item">
-                  <text class="metric-label">振幅</text>
-                  <text class="metric-value">{{item.amplitude}}%</text>
-                </view>
-              </view>
+            <view class="limit-tag" wx:if="{{item.isLimitUp}}">
+              <text>涨停</text>
+            </view>
+          </view>
+          <view class="card-metrics">
+            <view class="metric-cell">
+              <text class="metric-val">{{item.amount}}亿</text>
+              <text class="metric-lbl">成交额</text>
+            </view>
+            <view class="metric-cell">
+              <text class="metric-val">{{item.turnover}}%</text>
+              <text class="metric-lbl">换手率</text>
+            </view>
+            <view class="metric-cell">
+              <text class="metric-val {{item.amplitude > 10 ? 'warn' : ''}}">{{item.amplitude}}%</text>
+              <text class="metric-lbl">振幅</text>
+            </view>
+            <view class="metric-cell">
+              <text class="metric-val">{{item.volumeRatio}}</text>
+              <text class="metric-lbl">量比</text>
+            </view>
+            <view class="metric-cell">
+              <text class="metric-val">{{item.high}}</text>
+              <text class="metric-lbl">最高</text>
+            </view>
+            <view class="metric-cell">
+              <text class="metric-val">{{item.low}}</text>
+              <text class="metric-lbl">最低</text>
             </view>
           </view>
         </view>
@@ -129,43 +141,51 @@
       </view>
 
       <view class="stock-list">
-        <view class="stock-item limit-up" wx:for="{{limitUpList}}" wx:key="id">
-          <view class="stock-content">
-            <view class="stock-header">
-              <view class="stock-info">
-                <text class="stock-rank">{{index + 1}}</text>
-                <text class="stock-name">{{item.stockName}}</text>
-                <text class="stock-code">{{item.stockCode}}</text>
-                <text class="board-tag">{{item.boardName}}</text>
+        <view class="stock-card limit-up-card" wx:for="{{limitUpList}}" wx:key="id">
+          <view class="card-top">
+            <view class="card-left">
+              <view class="rank-badge top">
+                <text>{{index + 1}}</text>
               </view>
-              <view class="limit-threshold">
-                <text>涨停价 {{item.limitPrice}}</text>
+              <view class="stock-main">
+                <view class="stock-name-row">
+                  <text class="stock-name">{{item.stockName}}</text>
+                  <text class="stock-code">{{item.stockCode}}</text>
+                  <text class="board-tag {{item.board}}">{{item.boardName}}</text>
+                </view>
+                <view class="stock-price-row">
+                  <text class="price up">{{item.price}}</text>
+                  <view class="change-badge up">
+                    <text>+{{item.changePercent}}%</text>
+                    <text class="change-amount-sm">+{{item.changeAmount}}</text>
+                  </view>
+                  <view class="limit-price-tag">
+                    <text>涨停价 {{item.limitPrice}}</text>
+                  </view>
+                </view>
               </view>
             </view>
-            <view class="stock-body">
-              <view class="price-info">
-                <text class="price">{{item.price}}</text>
-                <text class="change up">
-                  +{{item.changePercent}}%
-                </text>
-                <text class="change-amount up">
-                  {{item.changeAmount >= 0 ? '+' : ''}}{{item.changeAmount}}
-                </text>
-              </view>
-              <view class="stock-metrics">
-                <view class="metric-item">
-                  <text class="metric-label">成交额</text>
-                  <text class="metric-value">{{item.amount}}亿</text>
-                </view>
-                <view class="metric-item">
-                  <text class="metric-label">换手率</text>
-                  <text class="metric-value">{{item.turnover}}%</text>
-                </view>
-                <view class="metric-item">
-                  <text class="metric-label">振幅</text>
-                  <text class="metric-value">{{item.amplitude}}%</text>
-                </view>
-              </view>
+          </view>
+          <view class="card-metrics">
+            <view class="metric-cell">
+              <text class="metric-val">{{item.amount}}亿</text>
+              <text class="metric-lbl">成交额</text>
+            </view>
+            <view class="metric-cell">
+              <text class="metric-val">{{item.turnover}}%</text>
+              <text class="metric-lbl">换手率</text>
+            </view>
+            <view class="metric-cell">
+              <text class="metric-val">{{item.amplitude}}%</text>
+              <text class="metric-lbl">振幅</text>
+            </view>
+            <view class="metric-cell">
+              <text class="metric-val">{{item.high}}</text>
+              <text class="metric-lbl">最高</text>
+            </view>
+            <view class="metric-cell">
+              <text class="metric-val">{{item.low}}</text>
+              <text class="metric-lbl">最低</text>
             </view>
           </view>
         </view>

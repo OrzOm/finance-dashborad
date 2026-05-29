@@ -11,32 +11,6 @@ const BOARD_TYPES = [
   { code: 'bj', name: '北交所' }
 ];
 
-const LIMIT_UP_THRESHOLDS = {
-  'sh': 10,
-  'sz': 10,
-  'cyb': 20,
-  'kcb': 20,
-  'bj': 30,
-  'new': 44
-};
-
-function getLimitThreshold(code, name) {
-  if (name && (name.startsWith('N') || name.startsWith('C'))) {
-    return LIMIT_UP_THRESHOLDS['new'];
-  }
-  let board = 'sh';
-  if (code.startsWith('0') || code.startsWith('002')) board = 'sz';
-  else if (code.startsWith('3')) board = 'cyb';
-  else if (code.startsWith('688')) board = 'kcb';
-  else if (code.startsWith('8') || code.startsWith('4')) board = 'bj';
-  return LIMIT_UP_THRESHOLDS[board] || 10;
-}
-
-function isLimitUp(code, name, changePercent) {
-  const threshold = getLimitThreshold(code, name);
-  return changePercent >= threshold - 0.1;
-}
-
 function getBoard(code) {
   if (code.startsWith('0') || code.startsWith('002')) return 'sz';
   if (code.startsWith('3')) return 'cyb';
@@ -197,7 +171,7 @@ Page({
       const stocks = [];
 
       const fetchGainers = new Promise((res) => {
-        const url = 'https://push2.eastmoney.com/api/qt/clist/get?cb=&fid=f3&po=1&pz=100&pn=1&np=1&fltt=2&invt=2&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048&fields=f2,f3,f4,f5,f6,f7,f8,f12,f14,f15,f16,f17,f18';
+        const url = 'https://push2.eastmoney.com/api/qt/clist/get?cb=&fid=f3&po=1&pz=100&pn=1&np=1&fltt=2&invt=2&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048&fields=f2,f3,f4,f5,f6,f7,f8,f12,f14,f15,f16,f17,f18,f51';
         wx.request({
           url: url,
           method: 'GET',
@@ -215,9 +189,9 @@ Page({
                 const amount = (item.f6 || 0);
                 const amplitude = (item.f7 || 0);
                 const turnover = (item.f8 || 0);
+                const limitPrice = (item.f51 || 0);
                 const board = getBoard(code);
-                const limitThreshold = getLimitThreshold(code, name);
-                const limitUp = isLimitUp(code, name, changePercent);
+                const limitUp = limitPrice > 0 && price > 0 && price >= limitPrice;
 
                 stocks.push({
                   id: `stock_${index}`,
@@ -227,7 +201,7 @@ Page({
                   board: board,
                   boardName: BOARD_TYPES.find(b => b.code === board)?.name || board,
                   isLimitUp: limitUp,
-                  limitThreshold: limitThreshold,
+                  limitPrice: limitPrice,
                   price: price.toFixed(2),
                   changePercent: parseFloat(changePercent.toFixed(2)),
                   changeAmount: parseFloat(changeAmount.toFixed(2)),
@@ -254,11 +228,9 @@ Page({
   fetchAbnormalStocks() {
     return new Promise((resolve) => {
       const abnormalList = [];
-      const now = new Date();
-      const dateStr = now.getFullYear() + (now.getMonth() + 1).toString().padStart(2, '0') + now.getDate().toString().padStart(2, '0');
 
       const fetchBillboard = new Promise((res) => {
-        const url = 'https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_DAILYBILLBOARD_DETAILSNEW&columns=ALL&filter=(TRADE_DATE%3E%27' + dateStr + '%27)&pageNumber=1&pageSize=50&sortTypes=-1&sortColumns=TRADE_DATE&source=WEB&client=WEB&_=' + Date.now();
+        const url = 'https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_DAILYBILLBOARD_DETAILSNEW&columns=ALL&filter=&pageNumber=1&pageSize=50&sortTypes=-1&sortColumns=TRADE_DATE&source=WEB&client=WEB&_=' + Date.now();
         wx.request({
           url: url,
           method: 'GET',

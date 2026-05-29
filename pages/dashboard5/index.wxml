@@ -83,7 +83,7 @@
                 <text class="board-tag">{{item.boardName}}</text>
               </view>
               <view class="limit-badge" wx:if="{{item.isLimitUp}}">
-                <text>涨停</text>
+                <text>涨停 {{item.limitPrice}}</text>
               </view>
             </view>
             <view class="stock-body">
@@ -139,7 +139,7 @@
                 <text class="board-tag">{{item.boardName}}</text>
               </view>
               <view class="limit-threshold">
-                <text>{{item.limitThreshold}}%涨停</text>
+                <text>涨停价 {{item.limitPrice}}</text>
               </view>
             </view>
             <view class="stock-body">
